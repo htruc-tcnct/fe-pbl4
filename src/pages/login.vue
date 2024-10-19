@@ -155,7 +155,8 @@ const onSubmit = async () => {
     );
     console.log("Login Success:", result.data);
     const user = result.data.user;
-    store.commit("setUser", user); // Save user information in Vuex
+    store.commit("setUser", user);
+    localStorage.setItem("userId", user.id);
     errorMessage.value = "";
     router.push("/home");
   } catch (err) {

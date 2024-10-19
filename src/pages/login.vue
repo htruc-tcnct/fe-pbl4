@@ -146,8 +146,8 @@ const formData = reactive({
 const onSubmit = async () => {
   try {
     const result = await axios.post(
-      "http://localhost:8000/user/login",
-      // `${import.meta.env.VITE_SERVER_URL}/user/login`,
+      // "http://localhost:8000/user/login",
+      `${import.meta.env.VITE_SERVER_URL}/user/login`,
       formData,
       {
         withCredentials: true,

@@ -82,7 +82,7 @@ export default {
     const dateOfBirth = ref(""); // Ngày sinh người dùng
     const email = ref(""); // Email người dùng
     const avatarUrl = ref("../assets/logo.png"); // URL avatar
-
+    const idUser = localStorage.getItem("idUser");
     // Hàm chuyển đổi ISO 8601 thành định dạng YYYY-MM-DD
     const formatDate = (isoString) => {
       const date = new Date(isoString);
@@ -96,7 +96,7 @@ export default {
     const fetchUserInfo = async () => {
       try {
         const response = await axios.get(
-          `${import.meta.env.VITE_SERVER_URL}/user-info`,
+          `${import.meta.env.VITE_SERVER_URL}/user/${idUser}`,
           {
             withCredentials: true,
           }

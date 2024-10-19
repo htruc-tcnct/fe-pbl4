@@ -195,7 +195,6 @@ import SettingModal from "./setting.vue";
 import settingShareModal from "./settingShare.vue";
 import createDocModal from "./create_new_doc.vue";
 let ownerId = ref("");
-let ownerIdDocument = ref("");
 let documents = ref([]);
 let avatarUrl = ref("");
 let email = ref("");
@@ -242,7 +241,7 @@ const goToTextEditor = (documentId) => {
   router.push({
     path: `/documents/detail/${documentId}`,
     query: {
-      ownerIdDocument: ownerIdDocument.value,
+      // ownerIdDocument: ownerIdDocument.value,
     },
   });
 };
@@ -346,14 +345,13 @@ document.addEventListener("click", hideContextMenu);
 const checkSessionStatus = async () => {
   try {
     const result = await axios.get(
-      `${import.meta.env.VITE_SERVER_URL}/user-info`,
+      `${import.meta.env.VITE_SERVER_URL}/user/${ownerId}`,
       {
         withCredentials: true,
       }
     );
-    console.log(">>>>>>>>>>>>>>>>>>>>>>>: ", result.data);
+    console.log(">>>>>>>>>>>>>>>>>>>>>>>: ", result);
     if (result.data && result.data.name) {
-      ownerId.value = result.data._id;
       email.value = result.data.email;
       name.value = result.data.name;
       avatarUrl.value =
@@ -388,7 +386,7 @@ const handleLogout = async () => {
 };
 const fetchDocuments = async () => {
   const result = await axios.get(
-    `${import.meta.env.VITE_SERVER_URL}/documents/${ownerId.value}`,
+    `${import.meta.env.VITE_SERVER_URL}/documents/${ownerId}`,
     {
       withCredentials: true,
     }
@@ -397,16 +395,16 @@ const fetchDocuments = async () => {
   if (result.data.documents) {
     console.log(result.data.documents[0]);
     documents.value = result.data.documents;
-    ownerIdDocument.value = result.data.documents[0].documentOwnerID;
+    // ownerIdDocument.value = result.data.documents[0].documentOwnerID;
   } else {
     console.warn("No documents found for the user.");
   }
 };
 
 onMounted(async () => {
+  ownerId = localStorage.getItem("idUser");
   await checkSessionStatus();
-
-  localStorage.setItem("ownerIdDocument", ownerIdDocument.value);
+  // localStorage.setItem("ownerIdDocument", ownerIdDocument.value);
 });
 </script>
 <style scoped>

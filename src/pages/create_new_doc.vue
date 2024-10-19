@@ -35,7 +35,7 @@ const emit = defineEmits(["close", "documentCreated"]);
 const documentName = ref("");
 const userName = ref("User");
 const userId = ref("");
-
+let ownerIdDocument = ref("");
 // Fetch user information on mounted
 
 const fetchUserInfo = async () => {
@@ -46,7 +46,6 @@ const fetchUserInfo = async () => {
         withCredentials: true,
       }
     );
-    console.log("<><<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>: ", response);
     if (response.data) {
       userName.value = response.data.name || "";
       userId.value = response.data._id || "";
@@ -71,13 +70,14 @@ const onSubmit = async () => {
   }
 
   try {
+    ownerIdDocument = localStorage.getItem("userId");
     // Tạo tài liệu mới với dữ liệu người dùng hiện tại
     const response = await axios.post(
       `${import.meta.env.VITE_SERVER_URL}/documents/`,
       {
         documentTitle: documentName.value,
         documentContent: "", // Nội dung ban đầu có thể là rỗng
-        documentOwnerID: userId.value, // ID người dùng từ thông tin người dùng hiện tại
+        documentOwnerID: ownerIdDocument, // ID người dùng từ thông tin người dùng hiện tại
         isShared: false, // Mặc định không chia sẻ tài liệu ngay lập tức
         shareCode: Math.random().toString(36).substr(2, 9), // Tạo mã chia sẻ ngẫu nhiên
         accessLevel: "Restricted",

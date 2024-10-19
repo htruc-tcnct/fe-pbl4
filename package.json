@@ -1,0 +1,28 @@
+{
+  "name": "client",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "aos": "^3.0.0-beta.6",
+    "axios": "^1.7.7",
+    "bootstrap": "^3.4.1",
+    "cors": "^2.8.5",
+    "jquery": "^3.7.1",
+    "jwt-decode": "^4.0.0",
+    "quill": "^2.0.2",
+    "socket.io-client": "^4.8.0",
+    "vue": "^3.4.37",
+    "vue-router": "^4.4.3",
+    "vuex": "^4.0.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.1.2",
+    "vite": "^5.4.1"
+  }
+}

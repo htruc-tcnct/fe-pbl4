@@ -156,7 +156,7 @@ const onSubmit = async () => {
     console.log("Login Success:", result.data);
     const user = result.data.user;
     store.commit("setUser", user);
-    localStorage.setItem("userId", user.id);
+    localStorage.setItem("idUser", user.id);
     errorMessage.value = "";
     router.push("/home");
   } catch (err) {

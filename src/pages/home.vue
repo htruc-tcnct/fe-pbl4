@@ -405,7 +405,7 @@ const fetchDocuments = async () => {
 
 onMounted(async () => {
   await checkSessionStatus();
-  localStorage.setItem("idUser", ownerId.value);
+
   localStorage.setItem("ownerIdDocument", ownerIdDocument.value);
 });
 </script>

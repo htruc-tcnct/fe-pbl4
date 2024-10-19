@@ -150,7 +150,7 @@ const onSubmit = async () => {
       // `${import.meta.env.VITE_SERVER_URL}/user/login`,
       formData,
       {
-        withCredentials: true, // Ensures cookies are sent with requests
+        withCredentials: true,
       }
     );
     console.log("Login Success:", result.data);

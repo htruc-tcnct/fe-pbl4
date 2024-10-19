@@ -157,7 +157,7 @@ const onSubmit = async () => {
     const user = result.data.user;
     store.commit("setUser", user); // Save user information in Vuex
     errorMessage.value = "";
-    router.push("/");
+    router.push("/home");
   } catch (err) {
     console.error("Login Error:", err);
     if (err.response) {

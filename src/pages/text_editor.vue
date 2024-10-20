@@ -57,12 +57,13 @@ onMounted(() => {
   });
 
   quill.value.on("text-change", (delta, oldDelta, source) => {
-    if (source !== "user") return;
+    if (source !== "user") return; // Chỉ gửi thay đổi từ người dùng
     socket.emit("send-changes", delta);
   });
 
   socket.on("receive-changes", (delta) => {
-    quill.value.updateContents(delta);
+    // Kiểm tra xem thay đổi có phải từ chính người dùng hay không
+    quill.value.updateContents(delta, "silent"); // Thực hiện cập nhật nội dung mà không gây ra sự kiện text-change mới
   });
 
   const saveInterval = setInterval(() => {

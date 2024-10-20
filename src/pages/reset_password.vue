@@ -2,7 +2,6 @@
   <div class="reset-password-container">
     <h2>Reset Your Password</h2>
     <form @submit.prevent="submitForm">
-      <!-- New Password Field -->
       <div class="form-group">
         <label for="new-password">New Password:</label>
         <input

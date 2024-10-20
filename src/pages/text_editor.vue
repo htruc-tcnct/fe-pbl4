@@ -2,49 +2,33 @@
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import Quill from "quill";
 import "quill/dist/quill.snow.css";
-import axios from "axios";
-import { useRouter } from "vue-router";
-import { socket } from "../socket";
+import { useRoute } from "vue-router";
+import { socket, state } from "../socket";
+
 const quill = ref(null);
-const accessLevel = ref("Viewer");
+const accessLevel = ref("");
 const errorMessage = ref("");
-const router = useRouter();
-const props = defineProps(["id", "ownerIdDocument"]);
-const storedIdUser = localStorage.getItem("idUser");
-const versionID = ref(null);
-const checkAccessLevel = async () => {
-  try {
-    const response = await axios.get(
-      `${import.meta.env.VITE_SERVER_URL}/documents/detail/${props.id}`
-    );
-    accessLevel.value = response.data.documents[0].accessLevel;
-    versionID.value = response.data.documents[0].currentVersionID;
+const route = useRoute();
+const documentId = route.params.id;
 
-    if (
-      accessLevel.value === "Restricted" &&
-      props.ownerIdDocument !== storedIdUser
-    ) {
-      const userResponse = window.confirm(
-        "You cannot access this document. Would you like to request access?"
-      );
+onMounted(() => {
+  console.log("Document ID:", documentId);
 
-      if (userResponse) {
-        console.log("Requesting access...");
-        router.push("/home");
-      } else {
-        router.push("/home");
-      }
-    }
-  } catch (error) {
-    console.error("Error checking access level:", error);
+  if (!state.connected) {
+    socket.connect();
   }
-};
 
-onMounted(async () => {
-  socket.connect();
-  await checkAccessLevel();
-  quill.value = new Quill(document.querySelector("#editorContainer"), {
-    debug: "info",
+  socket.on("connect", () => {
+    console.log("Socket connected");
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Socket disconnected");
+  });
+
+  const editorContainer = document.querySelector("#editorContainer");
+  quill.value = new Quill(editorContainer, {
+    theme: "snow",
     modules: {
       toolbar: [
         [{ font: [] }],
@@ -64,22 +48,37 @@ onMounted(async () => {
         userOnly: true,
       },
     },
-    // placeholder: "Compose an epic...",
-    readOnly: accessLevel.value === "View",
-    theme: "snow",
   });
+
+  socket.emit("get-document", documentId);
+  socket.once("load-document", (document) => {
+    quill.value.setContents(document);
+    quill.value.enable();
+  });
+
   quill.value.on("text-change", (delta, oldDelta, source) => {
-    if (source === "user") {
-      socket.emit("send-change", delta, versionID.value, storedIdUser);
-    }
+    if (source !== "user") return;
+    socket.emit("send-changes", delta);
   });
-  socket.on("receive-change", (delta) => {
+
+  socket.on("receive-changes", (delta) => {
     quill.value.updateContents(delta);
   });
-});
 
-onBeforeUnmount(() => {
-  socket.disconnect();
+  const saveInterval = setInterval(() => {
+    socket.emit("save-document", quill.value.getContents());
+  }, 2000);
+
+  onBeforeUnmount(() => {
+    socket.disconnect();
+    clearInterval(saveInterval);
+    socket.off("receive-changes");
+  });
+
+  socket.on("error", (error) => {
+    errorMessage.value = `Socket error: ${error}`;
+    console.error("Socket error:", error);
+  });
 });
 </script>
 

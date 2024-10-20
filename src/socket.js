@@ -5,14 +5,23 @@ export const state = reactive({
   connected: false,
 });
 
-const URL = "http://192.168.136.1:8000";
+const URL = "http://localhost:8000";
 
-export const socket = io(URL);
+export const socket = io(URL, {
+  withCredentials: true,
+  transports: ["websocket"],
+});
 
 socket.on("connect", () => {
   state.connected = true;
+  console.log("Socket connected to server");
 });
 
 socket.on("disconnect", () => {
   state.connected = false;
+  console.log("Socket disconnected from server");
+});
+
+socket.on("connect_error", (err) => {
+  console.error("Socket connection error:", err);
 });

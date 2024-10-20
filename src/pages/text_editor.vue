@@ -4,6 +4,8 @@ import Quill from "quill";
 import "quill/dist/quill.snow.css";
 import { useRoute } from "vue-router";
 import { socket, state } from "../socket";
+import * as Y from "yjs"; // Import Yjs
+import { QuillBinding } from "y-quill"; // Import Yjs-Quill integration
 
 const quill = ref(null);
 const accessLevel = ref("");
@@ -27,6 +29,11 @@ onMounted(() => {
   });
 
   const editorContainer = document.querySelector("#editorContainer");
+
+  // Khởi tạo Yjs document cho việc đồng bộ tài liệu
+  const ydoc = new Y.Doc();
+
+  // Tạo một Quill editor
   quill.value = new Quill(editorContainer, {
     theme: "snow",
     modules: {
@@ -50,24 +57,36 @@ onMounted(() => {
     },
   });
 
+  // Đồng bộ Quill với Yjs thông qua QuillBinding
+  const quillBinding = new QuillBinding(ydoc.getText("quill"), quill.value);
+
+  // Thêm sự kiện vào socket để tải tài liệu
   socket.emit("get-document", documentId);
   socket.once("load-document", (document) => {
-    quill.value.setContents(document);
-    quill.value.enable();
+    // Tải nội dung tài liệu từ socket nếu cần
+    if (document) {
+      const initialContent = Y.decodeUpdate(new Uint8Array(document));
+      ydoc.applyUpdate(initialContent); // Đồng bộ hóa nội dung từ server
+      quill.value.enable();
+    }
   });
 
-  quill.value.on("text-change", (delta, oldDelta, source) => {
-    if (source !== "user") return; // Chỉ gửi thay đổi từ người dùng
-    socket.emit("send-changes", delta);
-  });
-
+  // Khi nhận được thay đổi từ người khác, cập nhật vào Yjs
   socket.on("receive-changes", (delta) => {
-    // Kiểm tra xem thay đổi có phải từ chính người dùng hay không
-    quill.value.updateContents(delta, "silent"); // Thực hiện cập nhật nội dung mà không gây ra sự kiện text-change mới
+    const encodedDelta = new Uint8Array(delta);
+    ydoc.applyUpdate(encodedDelta);
   });
 
+  // Khi người dùng thay đổi tài liệu, gửi thay đổi qua socket
+  ydoc.on("update", (update) => {
+    const encodedUpdate = Array.from(new Uint8Array(update));
+    socket.emit("send-changes", encodedUpdate); // Gửi thay đổi qua socket
+  });
+
+  // Thiết lập lưu tài liệu theo thời gian
   const saveInterval = setInterval(() => {
-    socket.emit("save-document", quill.value.getContents());
+    const docContent = Y.encodeStateAsUpdate(ydoc); // Lấy nội dung Yjs document
+    socket.emit("save-document", Array.from(new Uint8Array(docContent)));
   }, 2000);
 
   onBeforeUnmount(() => {
@@ -82,7 +101,6 @@ onMounted(() => {
   });
 });
 </script>
-
 <template>
   <div>
     <div id="editorContainer"></div>
@@ -92,7 +110,6 @@ onMounted(() => {
     <p v-if="errorMessage" class="text-danger">{{ errorMessage }}</p>
   </div>
 </template>
-
 <style scoped>
 #editorContainer {
   height: 400px;

@@ -5,7 +5,7 @@ export const state = reactive({
   connected: false,
 });
 
-const URL = "http://localhost:8000";
+const URL = import.meta.env.VITE_SERVER_URL;
 
 export const socket = io(URL, {
   withCredentials: true,

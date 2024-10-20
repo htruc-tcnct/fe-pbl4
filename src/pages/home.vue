@@ -272,7 +272,6 @@ const handleDocumentCreated = (response) => {
 };
 const handleDocumentUpdated = (response) => {
   const newDocument = response.updatedDocument || response;
-  console.log("full ne: ", newDocument);
   if (newDocument && newDocument.documentTitle) {
     currentModal.value = "";
     console.error("success: ", newDocument);

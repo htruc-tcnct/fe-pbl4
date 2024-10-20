@@ -101,7 +101,6 @@ export default {
             withCredentials: true,
           }
         );
-        console.log(">>>>>>>>>>>>>>>>>>>>: ", response.data);
         if (response.data) {
           name.value = response.data.name || "";
           dateOfBirth.value = formatDate(response.data.dateOfBirth || ""); // Giả sử API trả về 'dateOfBirth' dưới dạng chuỗi 'YYYY-MM-DD'

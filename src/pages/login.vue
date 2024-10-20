@@ -153,7 +153,6 @@ const onSubmit = async () => {
         withCredentials: true,
       }
     );
-    console.log("Login Success:", result.data);
     const user = result.data.user;
     store.commit("setUser", user);
     localStorage.setItem("idUser", user.id);

@@ -349,7 +349,6 @@ const checkSessionStatus = async () => {
         withCredentials: true,
       }
     );
-    console.log(">>>>>>>>>>>>>>>>>>>>>>>: ", result);
     if (result.data && result.data.name) {
       email.value = result.data.email;
       name.value = result.data.name;
@@ -392,7 +391,6 @@ const fetchDocuments = async () => {
   );
 
   if (result.data.documents) {
-    console.log(result.data.documents[0]);
     documents.value = result.data.documents;
     // ownerIdDocument.value = result.data.documents[0].documentOwnerID;
   } else {

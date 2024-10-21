@@ -2,46 +2,90 @@
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { socket } from "../socket";
 
-// CRDT Class để quản lý chuỗi ký tự
+// CRDT với thứ tự logic để xử lý việc chèn đồng thời
 class CRDT {
   constructor(siteId) {
-    this.siteId = siteId; // Mỗi client có một siteId duy nhất
-    this.sequence = []; // Chuỗi các ký tự
+    this.siteId = siteId;
+    this.sequence = []; // Lưu chuỗi các ký tự với ID và vị trí logic
   }
 
-  // Tạo ID duy nhất cho mỗi ký tự
-  createId(position) {
-    return { siteId: this.siteId, seq: position };
+  // Tạo một ID duy nhất cho mỗi ký tự với vị trí logic
+  createId(previousId, nextId) {
+    const newPosition = this.generatePosition(previousId, nextId);
+    return { siteId: this.siteId, position: newPosition };
   }
 
-  // Chèn ký tự tại vị trí và phát sự kiện qua socket
-  insertChar(position, char) {
-    const id = this.createId(position);
-    this.sequence.splice(position, 0, { id, char });
-    socket.emit("crdt-insert", { id, char, position });
-  }
-
-  // Xóa ký tự tại vị trí và phát sự kiện qua socket
-  deleteChar(position) {
-    if (position >= 0 && position < this.sequence.length) {
-      const removed = this.sequence.splice(position, 1)[0];
-      socket.emit("crdt-delete", { id: removed.id, position });
+  // Tạo vị trí logic giữa hai vị trí
+  generatePosition(prev, next) {
+    if (!prev && !next) {
+      return [0];
     }
+    const prevPos = prev ? prev.position : [0];
+    const nextPos = next ? next.position : [Infinity];
+    const newPos = [];
+
+    let i = 0;
+    while (
+      i < prevPos.length &&
+      i < nextPos.length &&
+      prevPos[i] === nextPos[i]
+    ) {
+      newPos.push(prevPos[i]);
+      i++;
+    }
+
+    const prevDigit = prevPos[i] || 0;
+    const nextDigit = nextPos[i] || Infinity;
+    const newDigit = (prevDigit + nextDigit) / 2;
+    newPos.push(newDigit);
+
+    return newPos;
   }
 
-  // Nhận ký tự được chèn từ người dùng khác
-  remoteInsertChar(id, char, position) {
-    this.sequence.splice(position, 0, { id, char });
+  // Chèn ký tự tại vị trí logic và phát sự kiện qua socket
+  insertChar(char, previousId = null, nextId = null) {
+    const id = this.createId(previousId, nextId);
+    const newChar = { id, char };
+    this.sequence.push(newChar);
+    this.sequence.sort((a, b) => this.compareIds(a.id, b.id)); // Sắp xếp theo thứ tự logic
+
+    socket.emit("crdt-insert", newChar); // Phát sự kiện qua socket
+  }
+
+  // Xóa ký tự dựa trên ID
+  deleteChar(id) {
+    this.sequence = this.sequence.filter((item) => item.id !== id);
+    socket.emit("crdt-delete", { id });
+  }
+
+  // Nhận ký tự từ người dùng khác
+  remoteInsertChar(newChar) {
+    this.sequence.push(newChar);
+    this.sequence.sort((a, b) => this.compareIds(a.id, b.id)); // Sắp xếp lại
   }
 
   // Nhận yêu cầu xóa ký tự từ người dùng khác
-  remoteDeleteChar(id, position) {
-    if (position >= 0 && position < this.sequence.length) {
-      this.sequence.splice(position, 1);
-    }
+  remoteDeleteChar(id) {
+    this.sequence = this.sequence.filter((item) => item.id !== id);
   }
 
-  // Hiển thị chuỗi hiện tại
+  // So sánh hai ID để sắp xếp các ký tự theo thứ tự logic
+  compareIds(id1, id2) {
+    const pos1 = id1.position;
+    const pos2 = id2.position;
+
+    for (let i = 0; i < Math.max(pos1.length, pos2.length); i++) {
+      const digit1 = pos1[i] || 0;
+      const digit2 = pos2[i] || 0;
+      if (digit1 !== digit2) {
+        return digit1 - digit2;
+      }
+    }
+
+    return id1.siteId < id2.siteId ? -1 : 1; // Ưu tiên siteId thấp hơn khi vị trí bằng nhau
+  }
+
+  // Lấy chuỗi ký tự hiện tại
   getSequence() {
     return this.sequence.map((item) => item.char).join("");
   }
@@ -50,31 +94,29 @@ class CRDT {
 let crdt = null;
 const contentDiv = ref(null);
 
-// Hàm xử lý khi người dùng nhập liệu
-const handleInput = (event) => {
-  const content = event.target.innerText; // Lấy nội dung từ contenteditable
-  console.log("Content:", content);
-  updateContent();
-};
-
 const handleKeydown = (event) => {
-  const position = getCursorPosition(); // Lấy vị trí con trỏ hiện tại
+  const position = getCursorPosition();
+  const previousId = crdt.sequence[position - 1]?.id || null;
+  const nextId = crdt.sequence[position]?.id || null;
 
   if (event.key.length === 1) {
     event.preventDefault();
-    crdt.insertChar(position, event.key); // Chèn ký tự và phát qua socket
+    crdt.insertChar(event.key, previousId, nextId); // Chèn ký tự vào giữa
     updateContent();
   } else if (event.key === "Backspace") {
     event.preventDefault();
-    crdt.deleteChar(position - 1); // Xóa ký tự và phát qua socket
-    updateContent();
+    const currentChar = crdt.sequence[position - 1];
+    if (currentChar) {
+      crdt.deleteChar(currentChar.id); // Xóa ký tự
+      updateContent();
+    }
   }
 };
 
 // Hàm cập nhật nội dung hiển thị
 function updateContent() {
-  contentDiv.value.innerText = crdt.getSequence(); // Cập nhật nội dung trong DOM
-  setCursorPosition(crdt.sequence.length); // Đặt lại vị trí con trỏ
+  contentDiv.value.innerText = crdt.getSequence();
+  setCursorPosition(crdt.sequence.length);
 }
 
 // Lấy vị trí con trỏ hiện tại
@@ -94,21 +136,18 @@ function setCursorPosition(position) {
 }
 
 onMounted(() => {
-  // Khởi tạo CRDT với siteId (ID duy nhất cho client)
-  const siteId = Date.now(); // Sử dụng timestamp làm ID duy nhất
+  const siteId = Date.now();
   crdt = new CRDT(siteId);
 
-  // Kết nối socket
   socket.connect();
 
-  // Nhận sự kiện từ các client khác
   socket.on("crdt-insert", (data) => {
-    crdt.remoteInsertChar(data.id, data.char, data.position);
+    crdt.remoteInsertChar(data);
     updateContent();
   });
 
   socket.on("crdt-delete", (data) => {
-    crdt.remoteDeleteChar(data.id, data.position);
+    crdt.remoteDeleteChar(data.id);
     updateContent();
   });
 
@@ -116,7 +155,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  socket.disconnect(); // Ngắt kết nối khi component bị hủy
+  socket.disconnect();
 });
 </script>
 
@@ -126,7 +165,6 @@ onBeforeUnmount(() => {
       id="content"
       contenteditable="true"
       spellcheck="false"
-      @input="handleInput"
       @keydown="handleKeydown"
     ></div>
   </div>

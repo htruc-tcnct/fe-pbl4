@@ -219,7 +219,7 @@ const joinDocument = async () => {
     const response = await axios.get(
       `${import.meta.env.VITE_SERVER_URL}/documents/share/${joinCode.value}`,
       {
-        withCredentials: true, // Cho phép gửi cookie
+        withCredentials: true,
       }
     );
     const documentID = response.data.document._id;
@@ -403,7 +403,6 @@ const fetchDocuments = async () => {
 onMounted(async () => {
   ownerId = localStorage.getItem("idUser");
   await checkSessionStatus();
-  // localStorage.setItem("ownerIdDocument", ownerIdDocument.value);
 });
 </script>
 <style scoped>

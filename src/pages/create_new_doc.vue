@@ -70,7 +70,7 @@ const onSubmit = async () => {
   }
 
   try {
-    ownerIdDocument = localStorage.getItem("userId");
+    ownerIdDocument = localStorage.getItem("idUser");
     // Tạo tài liệu mới với dữ liệu người dùng hiện tại
     const response = await axios.post(
       `${import.meta.env.VITE_SERVER_URL}/documents/`,

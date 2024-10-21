@@ -2,14 +2,14 @@
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { socket } from "../socket";
 
-// Mô hình CRDT để quản lý các thay đổi trên mỗi client
+// CRDT Class để quản lý chuỗi ký tự
 class CRDT {
   constructor(siteId) {
-    this.siteId = siteId;
-    this.sequence = []; // Dùng để lưu trữ chuỗi ký tự với ID
+    this.siteId = siteId; // Mỗi client có một siteId duy nhất
+    this.sequence = []; // Chuỗi các ký tự
   }
 
-  // Tạo một ID duy nhất cho mỗi ký tự
+  // Tạo ID duy nhất cho mỗi ký tự
   createId(position) {
     return { siteId: this.siteId, seq: position };
   }
@@ -23,8 +23,10 @@ class CRDT {
 
   // Xóa ký tự tại vị trí và phát sự kiện qua socket
   deleteChar(position) {
-    const removed = this.sequence.splice(position, 1)[0];
-    socket.emit("crdt-delete", { id: removed.id, position });
+    if (position >= 0 && position < this.sequence.length) {
+      const removed = this.sequence.splice(position, 1)[0];
+      socket.emit("crdt-delete", { id: removed.id, position });
+    }
   }
 
   // Nhận ký tự được chèn từ người dùng khác
@@ -34,7 +36,9 @@ class CRDT {
 
   // Nhận yêu cầu xóa ký tự từ người dùng khác
   remoteDeleteChar(id, position) {
-    this.sequence.splice(position, 1);
+    if (position >= 0 && position < this.sequence.length) {
+      this.sequence.splice(position, 1);
+    }
   }
 
   // Hiển thị chuỗi hiện tại
@@ -46,25 +50,31 @@ class CRDT {
 let crdt = null;
 const contentDiv = ref(null);
 
-const handleKeydown = (event) => {
-  event.preventDefault(); // Tắt hành vi mặc định
+// Hàm xử lý khi người dùng nhập liệu
+const handleInput = (event) => {
+  const content = event.target.innerText; // Lấy nội dung từ contenteditable
+  console.log("Content:", content);
+  updateContent();
+};
 
-  const position = getCursorPosition(); // Vị trí con trỏ hiện tại
+const handleKeydown = (event) => {
+  const position = getCursorPosition(); // Lấy vị trí con trỏ hiện tại
+
   if (event.key.length === 1) {
-    // Chèn ký tự và phát sự kiện qua socket
-    crdt.insertChar(position, event.key);
+    event.preventDefault();
+    crdt.insertChar(position, event.key); // Chèn ký tự và phát qua socket
     updateContent();
   } else if (event.key === "Backspace") {
-    // Xóa ký tự và phát sự kiện qua socket
-    crdt.deleteChar(position - 1);
+    event.preventDefault();
+    crdt.deleteChar(position - 1); // Xóa ký tự và phát qua socket
     updateContent();
   }
 };
 
 // Hàm cập nhật nội dung hiển thị
 function updateContent() {
-  contentDiv.value.innerText = crdt.getSequence();
-  setCursorPosition(crdt.sequence.length); // Đặt lại con trỏ
+  contentDiv.value.innerText = crdt.getSequence(); // Cập nhật nội dung trong DOM
+  setCursorPosition(crdt.sequence.length); // Đặt lại vị trí con trỏ
 }
 
 // Lấy vị trí con trỏ hiện tại
@@ -84,14 +94,14 @@ function setCursorPosition(position) {
 }
 
 onMounted(() => {
-  // Tạo một CRDT mới với siteId (ID của phiên bản client này)
-  const siteId = Date.now(); // Sử dụng timestamp làm ID đơn giản
+  // Khởi tạo CRDT với siteId (ID duy nhất cho client)
+  const siteId = Date.now(); // Sử dụng timestamp làm ID duy nhất
   crdt = new CRDT(siteId);
 
   // Kết nối socket
   socket.connect();
 
-  // Lắng nghe sự kiện từ người dùng khác
+  // Nhận sự kiện từ các client khác
   socket.on("crdt-insert", (data) => {
     crdt.remoteInsertChar(data.id, data.char, data.position);
     updateContent();
@@ -106,7 +116,7 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  socket.disconnect();
+  socket.disconnect(); // Ngắt kết nối khi component bị hủy
 });
 </script>
 
@@ -116,6 +126,7 @@ onBeforeUnmount(() => {
       id="content"
       contenteditable="true"
       spellcheck="false"
+      @input="handleInput"
       @keydown="handleKeydown"
     ></div>
   </div>

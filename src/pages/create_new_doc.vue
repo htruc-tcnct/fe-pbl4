@@ -41,7 +41,7 @@ let ownerIdDocument = ref("");
 const fetchUserInfo = async () => {
   try {
     const response = await axios.get(
-      `${import.meta.env.VITE_SERVER_URL}/user/${userId}`,
+      `${import.meta.env.VITE_SERVER_URL}/user/${userId.value}`,
       {
         withCredentials: true,
       }
@@ -81,6 +81,9 @@ const onSubmit = async () => {
         isShared: false, // Mặc định không chia sẻ tài liệu ngay lập tức
         shareCode: Math.random().toString(36).substr(2, 9), // Tạo mã chia sẻ ngẫu nhiên
         accessLevel: "Restricted",
+      },
+      {
+        withCredentials: true, // Gửi cookie cùng với yêu cầu
       }
     );
 

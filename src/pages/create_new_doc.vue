@@ -41,7 +41,7 @@ let ownerIdDocument = ref("");
 const fetchUserInfo = async () => {
   try {
     const response = await axios.get(
-      `${import.meta.env.VITE_SERVER_URL}/user-info`,
+      `${import.meta.env.VITE_SERVER_URL}/user/${userId}`,
       {
         withCredentials: true,
       }

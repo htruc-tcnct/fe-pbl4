@@ -218,7 +218,9 @@ const joinDocument = async () => {
   try {
     const response = await axios.get(
       `${import.meta.env.VITE_SERVER_URL}/documents/share/${joinCode.value}`,
-      { withCredentials: true } // Đảm bảo gửi thông tin xác thực (session hoặc JWT)
+      {
+        withCredentials: true, // Cho phép gửi cookie
+      }
     );
     const documentID = response.data.document._id;
     router.push({

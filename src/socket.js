@@ -6,11 +6,11 @@ export const state = reactive({
   fooEvents: [],
   barEvents: [],
 });
-
-const URL = import.meta.env.VITE_SERVER_URL;
+const URL = import.meta.env.VITE_SERVER_URL || "http://localhost:8000"; // Dùng biến môi trường hoặc fallback là localhost
 export const socket = io(URL, {
   withCredentials: true,
 });
+
 socket.on("connect", () => {
   state.connected = true;
 });

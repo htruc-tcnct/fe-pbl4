@@ -709,3 +709,274 @@ onMounted(() => {
 onBeforeUnmount(() => {
   socket.disconnect();
 });
+</script>
+
+<template>
+  <div class="container">
+    <div class="container mt-3">
+      <div class="toolbar p-3 bg-light border rounded">
+        <div class="d-flex justify-content-start align-items-center mb-3">
+          <!-- Dropdown for document title -->
+          <input
+            type="text"
+            class="form-control me-2"
+            placeholder="untitled"
+            style="width: 120px"
+          />
+
+          <!-- File Dropdown -->
+          <div class="dropdown me-2">
+            <button
+              class="btn btn-outline-secondary dropdown-toggle"
+              type="button"
+              id="fileDropdown"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              File
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="fileDropdown">
+              <li><a class="dropdown-item" href="#">New</a></li>
+              <li><a class="dropdown-item" href="#">Open</a></li>
+              <li><a class="dropdown-item" href="#">Save as txt</a></li>
+              <li><a class="dropdown-item" href="#">Save as pdf</a></li>
+            </ul>
+          </div>
+
+          <!-- Format Dropdown -->
+          <div class="dropdown me-2">
+            <button
+              class="btn btn-outline-secondary dropdown-toggle"
+              type="button"
+              id="formatDropdown"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              Format
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="formatDropdown">
+              <li>
+                <a class="dropdown-item" href="#" onclick="applyFormat('H1')"
+                  >Heading 1</a
+                >
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" onclick="applyFormat('H2')"
+                  >Heading 2</a
+                >
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" onclick="applyFormat('H3')"
+                  >Heading 3</a
+                >
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" onclick="applyFormat('H4')"
+                  >Heading 4</a
+                >
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" onclick="applyFormat('H5')"
+                  >Heading 5</a
+                >
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" onclick="applyFormat('H6')"
+                  >Heading 6</a
+                >
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" onclick="applyFormat('P')"
+                  >Paragraph</a
+                >
+              </li>
+            </ul>
+          </div>
+
+          <!-- Font size Dropdown -->
+          <div class="dropdown me-2">
+            <button
+              class="btn btn-outline-secondary dropdown-toggle"
+              type="button"
+              id="fontSizeDropdown"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              Font size
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="fontSizeDropdown">
+              <li>
+                <a
+                  class="dropdown-item"
+                  href="#"
+                  onclick="changeFontSize('8pt')"
+                  >Extra small</a
+                >
+              </li>
+              <li>
+                <a
+                  class="dropdown-item"
+                  href="#"
+                  onclick="changeFontSize('10pt')"
+                  >Small</a
+                >
+              </li>
+              <li>
+                <a
+                  class="dropdown-item"
+                  href="#"
+                  onclick="changeFontSize('12pt')"
+                  >Regular</a
+                >
+              </li>
+              <li>
+                <a
+                  class="dropdown-item"
+                  href="#"
+                  onclick="changeFontSize('14pt')"
+                  >Medium</a
+                >
+              </li>
+              <li>
+                <a
+                  class="dropdown-item"
+                  href="#"
+                  onclick="changeFontSize('18pt')"
+                  >Large</a
+                >
+              </li>
+              <li>
+                <a
+                  class="dropdown-item"
+                  href="#"
+                  onclick="changeFontSize('24pt')"
+                  >Extra Large</a
+                >
+              </li>
+              <li>
+                <a
+                  class="dropdown-item"
+                  href="#"
+                  onclick="changeFontSize('32pt')"
+                  >Big</a
+                >
+              </li>
+            </ul>
+          </div>
+
+          <!-- Color Picker -->
+          <div
+            class="d-flex align-items-center border border-secondary px-2 py-1 rounded"
+          >
+            <!-- Label for Color Picker -->
+            <label for="textColorPicker" class="me-2">Color</label>
+
+            <!-- Color Picker -->
+            <input
+              type="color"
+              id="textColorPicker"
+              class="form-control form-control-color"
+              value="#000000"
+              title="Choose text color"
+              style="height: 22px; width: 24px"
+            />
+          </div>
+
+          <!-- Background Color Picker -->
+          <div
+            class="d-flex align-items-center border border-secondary px-2 py-1 rounded ms-2"
+          >
+            <!-- Label for Color Picker -->
+            <label for="textColorPicker" class="me-2">Background</label>
+
+            <!-- Color Picker -->
+            <input
+              type="color"
+              id="textColorPicker"
+              class="form-control form-control-color"
+              value="#000000"
+              title="Choose text color"
+              style="height: 22px; width: 24px"
+            />
+          </div>
+        </div>
+
+        <div class="d-flex justify-content-start align-items-center">
+          <!-- Toolbar buttons -->
+          <button class="btn btn-outline-secondary me-1">
+            <i class="fas fa-undo"></i>
+          </button>
+          <button class="btn btn-outline-secondary me-1">
+            <i class="fas fa-redo"></i>
+          </button>
+          <button class="btn btn-outline-secondary me-1">
+            <i class="fas fa-bold"></i>
+          </button>
+          <button class="btn btn-outline-secondary me-1">
+            <i class="fas fa-italic"></i>
+          </button>
+          <button class="btn btn-outline-secondary me-1">
+            <i class="fas fa-underline"></i>
+          </button>
+          <button class="btn btn-outline-secondary me-1">
+            <i class="fas fa-strikethrough"></i>
+          </button>
+          <button class="btn btn-outline-secondary me-1">
+            <i class="fas fa-align-left"></i>
+          </button>
+          <button class="btn btn-outline-secondary me-1">
+            <i class="fas fa-align-center"></i>
+          </button>
+          <button class="btn btn-outline-secondary me-1">
+            <i class="fas fa-align-right"></i>
+          </button>
+          <button class="btn btn-outline-secondary me-1">
+            <i class="fas fa-list-ul"></i>
+          </button>
+          <button class="btn btn-outline-secondary me-1">
+            <i class="fas fa-list-ol"></i>
+          </button>
+          <button class="btn btn-outline-secondary me-1">
+            <i class="fas fa-link"></i>
+          </button>
+          <button class="btn btn-outline-secondary">
+            <i class="fas fa-code"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Editable content area -->
+
+      <div
+        id="content"
+        class="border mt-3 p-3 rounded"
+        contenteditable="true"
+        spellcheck="false"
+        style="min-height: 200px"
+        @keydown="XuLyNut"
+      ></div>
+    </div>
+  </div>
+</template>
+
+<style scoped>
+:deep(#content div) {
+  display: inline-block;
+  margin: 0;
+}
+:deep(#content) {
+  width: 50%;
+  height: 50%;
+  margin: 0 auto;
+  border: 2px solid #ccc;
+  padding: 10px;
+  box-sizing: border-box;
+}
+input[type="color"] {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  background: none;
+}
+</style>

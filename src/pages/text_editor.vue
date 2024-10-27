@@ -3,7 +3,11 @@ import { ref, onMounted, onBeforeUnmount } from "vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
 import { socket } from "../socket";
+const content = ref("");
 
+const getContent = () => {
+  console.log(content.value); // Hiển thị nội dung của textarea trong console
+};
 const props = defineProps(["id", "ownerIdDocument"]);
 let active = false;
 let nameDoc = ref(null);
@@ -722,246 +726,284 @@ onBeforeUnmount(() => {
   <div class="container">
     <div class="container mt-3">
       <div class="toolbar p-3 bg-light border rounded">
-        <div class="d-flex justify-content-start align-items-center mb-3">
-          <!-- Dropdown for document title -->
-          <input
-            type="text"
-            class="form-control me-2"
-            v-model="nameDoc"
-            style="width: 120px"
-          />
+        <div class="row mb-3">
+          <!-- Input for document title -->
+          <div class="col-lg-2 col-12">
+            <input
+              type="text"
+              class="form-control"
+              v-model="nameDoc"
+              placeholder="Document Title"
+            />
+          </div>
 
           <!-- File Dropdown -->
-          <div class="dropdown me-2">
-            <button
-              class="btn btn-outline-secondary dropdown-toggle"
-              type="button"
-              id="fileDropdown"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              File
-            </button>
-            <ul class="dropdown-menu" aria-labelledby="fileDropdown">
-              <li><a class="dropdown-item" href="#">New</a></li>
-              <li><a class="dropdown-item" href="#">Open</a></li>
-              <li><a class="dropdown-item" href="#">Save as txt</a></li>
-              <li><a class="dropdown-item" href="#">Save as pdf</a></li>
-            </ul>
+          <div class="col-lg-1 col-6">
+            <div class="dropdown">
+              <button
+                class="btn btn-outline-secondary dropdown-toggle w-100"
+                type="button"
+                id="fileDropdown"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                File
+              </button>
+              <ul class="dropdown-menu" aria-labelledby="fileDropdown">
+                <li><a class="dropdown-item" href="#">New</a></li>
+                <li><a class="dropdown-item" href="#">Open</a></li>
+                <li><a class="dropdown-item" href="#">Save as txt</a></li>
+                <li><a class="dropdown-item" href="#">Save as pdf</a></li>
+              </ul>
+            </div>
           </div>
 
           <!-- Format Dropdown -->
-          <div class="dropdown me-2">
-            <button
-              class="btn btn-outline-secondary dropdown-toggle"
-              type="button"
-              id="formatDropdown"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              Format
-            </button>
-            <ul class="dropdown-menu" aria-labelledby="formatDropdown">
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H1')"
-                  >Heading 1</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H2')"
-                  >Heading 2</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H3')"
-                  >Heading 3</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H4')"
-                  >Heading 4</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H5')"
-                  >Heading 5</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H6')"
-                  >Heading 6</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('P')"
-                  >Paragraph</a
-                >
-              </li>
-            </ul>
+          <div class="col-lg-1 col-6 px-lg-1">
+            <div class="dropdown">
+              <button
+                class="btn btn-outline-secondary dropdown-toggle w-100"
+                type="button"
+                id="formatDropdown"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                Format
+              </button>
+              <ul class="dropdown-menu" aria-labelledby="formatDropdown">
+                <li>
+                  <a class="dropdown-item" href="#" onclick="applyFormat('H1')"
+                    >Heading 1</a
+                  >
+                </li>
+                <li>
+                  <a class="dropdown-item" href="#" onclick="applyFormat('H2')"
+                    >Heading 2</a
+                  >
+                </li>
+                <li>
+                  <a class="dropdown-item" href="#" onclick="applyFormat('H3')"
+                    >Heading 3</a
+                  >
+                </li>
+                <li>
+                  <a class="dropdown-item" href="#" onclick="applyFormat('H4')"
+                    >Heading 4</a
+                  >
+                </li>
+                <li>
+                  <a class="dropdown-item" href="#" onclick="applyFormat('H5')"
+                    >Heading 5</a
+                  >
+                </li>
+                <li>
+                  <a class="dropdown-item" href="#" onclick="applyFormat('H6')"
+                    >Heading 6</a
+                  >
+                </li>
+                <li>
+                  <a class="dropdown-item" href="#" onclick="applyFormat('P')"
+                    >Paragraph</a
+                  >
+                </li>
+              </ul>
+            </div>
           </div>
 
-          <!-- Font size Dropdown -->
-          <div class="dropdown me-2">
-            <button
-              class="btn btn-outline-secondary dropdown-toggle"
-              type="button"
-              id="fontSizeDropdown"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              Font size
-            </button>
-            <ul class="dropdown-menu" aria-labelledby="fontSizeDropdown">
-              <li>
-                <a
-                  class="dropdown-item"
-                  href="#"
-                  onclick="changeFontSize('8pt')"
-                  >Extra small</a
-                >
-              </li>
-              <li>
-                <a
-                  class="dropdown-item"
-                  href="#"
-                  onclick="changeFontSize('10pt')"
-                  >Small</a
-                >
-              </li>
-              <li>
-                <a
-                  class="dropdown-item"
-                  href="#"
-                  onclick="changeFontSize('12pt')"
-                  >Regular</a
-                >
-              </li>
-              <li>
-                <a
-                  class="dropdown-item"
-                  href="#"
-                  onclick="changeFontSize('14pt')"
-                  >Medium</a
-                >
-              </li>
-              <li>
-                <a
-                  class="dropdown-item"
-                  href="#"
-                  onclick="changeFontSize('18pt')"
-                  >Large</a
-                >
-              </li>
-              <li>
-                <a
-                  class="dropdown-item"
-                  href="#"
-                  onclick="changeFontSize('24pt')"
-                  >Extra Large</a
-                >
-              </li>
-              <li>
-                <a
-                  class="dropdown-item"
-                  href="#"
-                  onclick="changeFontSize('32pt')"
-                  >Big</a
-                >
-              </li>
-            </ul>
+          <!-- Font Size Dropdown -->
+          <div class="col-lg-2 col-6">
+            <div class="dropdown">
+              <button
+                class="btn btn-outline-secondary dropdown-toggle w-100"
+                type="button"
+                id="fontSizeDropdown"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                Font Size
+              </button>
+              <ul class="dropdown-menu" aria-labelledby="fontSizeDropdown">
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    onclick="changeFontSize('8pt')"
+                    >Extra small</a
+                  >
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    onclick="changeFontSize('10pt')"
+                    >Small</a
+                  >
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    onclick="changeFontSize('12pt')"
+                    >Regular</a
+                  >
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    onclick="changeFontSize('14pt')"
+                    >Medium</a
+                  >
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    onclick="changeFontSize('18pt')"
+                    >Large</a
+                  >
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    onclick="changeFontSize('24pt')"
+                    >Extra Large</a
+                  >
+                </li>
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    onclick="changeFontSize('32pt')"
+                    >Big</a
+                  >
+                </li>
+              </ul>
+            </div>
           </div>
 
-          <!-- Color Picker -->
+          <!-- Text Color Picker -->
           <div
-            class="d-flex align-items-center border border-secondary px-2 py-1 rounded"
+            class="col-lg-1 col-6 d-flex align-items-center btn btn-outline-secondary"
+            style="height: 40px"
           >
-            <!-- Label for Color Picker -->
             <label for="textColorPicker" class="me-2">Color</label>
-
-            <!-- Color Picker -->
             <input
               type="color"
               id="textColorPicker"
               class="form-control form-control-color"
               value="#000000"
               title="Choose text color"
-              style="height: 22px; width: 24px"
+              style="height: 26px"
             />
           </div>
 
           <!-- Background Color Picker -->
           <div
-            class="d-flex align-items-center border border-secondary px-2 py-1 rounded ms-2"
+            style="height: 40px"
+            class="col-lg-2 col-6 d-flex align-items-center btn btn-outline-secondary ms-lg-3 ms-2"
           >
-            <!-- Label for Color Picker -->
-            <label for="textColorPicker" class="me-2">Background</label>
-
-            <!-- Color Picker -->
+            <label for="bgColorPicker" class="me-2">Background</label>
             <input
               type="color"
-              id="textColorPicker"
+              id="bgColorPicker"
               class="form-control form-control-color"
               value="#000000"
-              title="Choose text color"
-              style="height: 22px; width: 24px"
+              title="Choose background color"
+              style="height: 26px"
             />
           </div>
         </div>
 
-        <div class="d-flex justify-content-start align-items-center">
+        <div class="row">
           <!-- Toolbar buttons -->
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-undo"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-redo"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-bold"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-italic"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-underline"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-strikethrough"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-align-left"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-align-center"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-align-right"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-list-ul"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-list-ol"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-link"></i>
-          </button>
-          <button class="btn btn-outline-secondary">
-            <i class="fas fa-code"></i>
-          </button>
+          <div class="col-12">
+            <div class="d-flex align-items-center flex-wrap">
+              <!-- Buttons -->
+              <button class="btn btn-outline-secondary mx-1">
+                <i class="fas fa-undo"></i>
+              </button>
+              <button class="btn btn-outline-secondary mx-1">
+                <i class="fas fa-redo"></i>
+              </button>
+              <button class="btn btn-outline-secondary mx-1">
+                <i class="fas fa-bold"></i>
+              </button>
+              <button class="btn btn-outline-secondary mx-1">
+                <i class="fas fa-italic"></i>
+              </button>
+              <button class="btn btn-outline-secondary mx-1">
+                <i class="fas fa-underline"></i>
+              </button>
+              <button class="btn btn-outline-secondary mx-1">
+                <i class="fas fa-strikethrough"></i>
+              </button>
+              <button class="btn btn-outline-secondary mx-1">
+                <i class="fas fa-align-left"></i>
+              </button>
+              <button class="btn btn-outline-secondary mx-1">
+                <i class="fas fa-align-center"></i>
+              </button>
+              <button class="btn btn-outline-secondary mx-1">
+                <i class="fas fa-align-right"></i>
+              </button>
+              <button class="btn btn-outline-secondary mx-1">
+                <i class="fas fa-list-ul"></i>
+              </button>
+              <button class="btn btn-outline-secondary mx-1">
+                <i class="fas fa-list-ol"></i>
+              </button>
+              <button class="btn btn-outline-secondary mx-1">
+                <i class="fas fa-link"></i>
+              </button>
+              <button class="btn btn-outline-secondary mx-1">
+                <i class="fas fa-code"></i>
+              </button>
+
+              <!-- Extra Button -->
+              <button class="btn btn-light mx-1">
+                <i class="fa-solid fa-rotate-left"></i>
+              </button>
+
+              <!-- Share Dropdown -->
+              <div class="dropdown mx-1">
+                <button
+                  class="btn btn-primary dropdown-toggle"
+                  type="button"
+                  id="shareDropdown"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                  style="
+                    border-radius: 20px;
+                    background-color: #add8e6;
+                    color: black;
+                  "
+                >
+                  <i class="fa-solid fa-lock me-1"></i>
+                  Share
+                </button>
+                <ul class="dropdown-menu" aria-labelledby="shareDropdown">
+                  <li><a class="dropdown-item" href="#">Copy Link</a></li>
+                  <li><a class="dropdown-item" href="#">Share via Email</a></li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- Editable content area -->
 
-      <div
+      <textarea
         id="content"
         class="border mt-3 p-3 rounded"
-        contenteditable="true"
         spellcheck="false"
-        style="min-height: 200px"
+        style="min-height: 200px; width: 100%"
+        v-model="content"
         @keydown="XuLyNut"
-      ></div>
+      ></textarea>
+      <button @click="getContent">Get Content</button>
     </div>
   </div>
 </template>

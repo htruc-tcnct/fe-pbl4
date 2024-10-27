@@ -3,10 +3,15 @@ import { ref, onMounted, onBeforeUnmount } from "vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
 import { socket } from "../socket";
-const content = ref("");
+const contentRef = ref(null);
 
 const getContent = () => {
-  console.log(content.value); // Hiển thị nội dung của textarea trong console
+  // Lấy nội dung HTML
+  const content = contentRef.value.innerHTML;
+  console.log(content);
+
+  // Nếu chỉ muốn lấy nội dung văn bản, sử dụng:
+  // const content = contentRef.value.textContent;
 };
 const props = defineProps(["id", "ownerIdDocument"]);
 let active = false;
@@ -995,16 +1000,17 @@ onBeforeUnmount(() => {
 
       <!-- Editable content area -->
 
-      <textarea
+      <div
         id="content"
         class="border mt-3 p-3 rounded"
+        contenteditable="true"
         spellcheck="false"
-        style="min-height: 200px; width: 100%"
-        v-model="content"
+        style="min-height: 200px"
         @keydown="XuLyNut"
-      ></textarea>
-      <button @click="getContent">Get Content</button>
+        ref="contentRef"
+      ></div>
     </div>
+    <button @click="getContent">Get Content</button>
   </div>
 </template>
 

@@ -3,25 +3,81 @@ import { ref, onMounted, onBeforeUnmount } from "vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
 import { socket } from "../socket";
-
+import { Document, Packer, Paragraph, TextRun } from "docx";
+import { saveAs } from "file-saver";
 const props = defineProps(["id", "ownerIdDocument"]);
-let active = false;
 
-const showCode = ref(null);
+function rgbToHex(rgb) {
+  const result = rgb.match(/\d+/g);
+  return result
+    ? (
+        (1 << 24) +
+        (parseInt(result[0]) << 16) +
+        (parseInt(result[1]) << 8) +
+        parseInt(result[2])
+      )
+        .toString(16)
+        .slice(1)
+    : "000000";
+}
+const exportToDocx = async () => {
+  try {
+    const contentElement = document.getElementById("content");
+    const divElements = contentElement.querySelectorAll("div");
+
+    const textRuns = [];
+
+    divElements.forEach((div) => {
+      const text = div.innerText || div.textContent;
+
+      const isBold =
+        div.classList.contains("bold") || div.style.fontWeight === "bold";
+      const isItalic =
+        div.classList.contains("italic") || div.style.fontStyle === "italic";
+      let color = div.style.color || "000000";
+
+      if (color.startsWith("rgb")) {
+        color = rgbToHex(color);
+      } else {
+        color = color.replace("#", "");
+      }
+
+      textRuns.push(
+        new TextRun({
+          text: text,
+          bold: isBold,
+          italics: isItalic,
+          color: color,
+        })
+      );
+    });
+
+    const paragraph = new Paragraph({
+      children: textRuns,
+    });
+
+    const doc = new Document({
+      sections: [
+        {
+          properties: {},
+          children: [paragraph],
+        },
+      ],
+      creator: "Your App Name",
+      title: "Exported Content",
+      description: "Generated document from HTML content",
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, "content_structure.docx");
+  } catch (error) {
+    console.error("Error exporting document:", error);
+  }
+};
+
 const contentDiv = ref(null);
 var pri;
 
-const ShowCode = () => {
-  showCode.value.dataset.active = !active;
-  active = !active;
-  if (active) {
-    contentDiv.value.textContent = contentDiv.value.innerHTML;
-    contentDiv.value.setAttribute("contenteditable", false);
-  } else {
-    contentDiv.value.innerHTML = contentDiv.value.textContent;
-    contentDiv.value.setAttribute("contenteditable", true);
-  }
-};
 const XuLyNut = (event) => {
   event.preventDefault(); // Tắt hành vi mặc định (gõ chữ vào div)
   console.log("Bạn đã nhấn phím:", event.key);
@@ -48,11 +104,6 @@ const XuLyNut = (event) => {
         XuLyGoODauContent(currentDiv, event.key);
         return;
       }
-      // xử lý gõ khi content đang trống
-      // if (hasDivInContent() == false) {
-      //   XuLyGoKhiContentTrong(event.key);
-      //   return;
-      // }
 
       // Tạo một thẻ <div> mới
       const newDiv = document.createElement("div");
@@ -101,6 +152,10 @@ const XuLyNut = (event) => {
     }
   } else {
     if (event.key == "Backspace") {
+      const content = contentDiv.value.innerHTML.trim();
+      if (!content || content === "<br>") {
+        contentDiv.value.innerHTML = "<div><br></div>"; // Keeps `#content` from collapsing
+      }
       if (currentDiv) {
         if (currentDiv.id == "") {
           console.log("không xóa id rỗng");
@@ -110,10 +165,6 @@ const XuLyNut = (event) => {
           console.log("Con trỏ ở đầu content");
           return;
         }
-        // if (hasDivInContent() == false) {
-        //   console.log("không có gì để xóa");
-        //   return;
-        // }
 
         const selection = window.getSelection();
 
@@ -123,18 +174,7 @@ const XuLyNut = (event) => {
           const idCurrentDiv = currentDiv.id;
 
           currentDiv.remove();
-          // thẻ div trước id rỗng thì không gán selection
-          // if (previousDiv.id == "") {
-          //   console.log("id rỗng");
 
-          //   // gửi socket
-          //   const charToDelete = {
-          //     id: idCurrentDiv,
-          //   };
-          //   socket.emit("delete-one", JSON.stringify(charToDelete));
-          //   return;
-          // }
-          // Tạo một range mới để đặt con trỏ ở cuối previousDiv
           const newRange = document.createRange();
           newRange.selectNodeContents(previousDiv);
           newRange.collapse(false); // Đặt con trỏ ở cuối
@@ -207,48 +247,6 @@ function updateInsertion(kiTu) {
   const newDiv = document.createElement("div");
   newDiv.id = kiTu.id;
   newDiv.textContent = kiTu.content;
-  // nếu trống thì chèn vào không cần duyệt
-  // if (hasDivInContent() == false) {
-  //   // Xóa nội dung hiện có trong thẻ content
-  //   contentDiv.value.innerHTML = "";
-
-  //   // Tạo thẻ <div> id="" mới
-  //   const newParagraph = document.createElement("div");
-  //   newParagraph.innerHTML = "";
-  //   newParagraph.id = "";
-
-  //   // Chèn thẻ <div> id="" vào thẻ content
-  //   contentDiv.value.appendChild(newParagraph);
-
-  //   // Chèn thẻ div mới vào thẻ content
-  //   contentDiv.value.appendChild(newDiv);
-
-  //   // Tạo và chèn thẻ <br>
-  //   const lineBreak = document.createElement("br");
-  //   contentDiv.value.appendChild(lineBreak);
-
-  //   console.log("Con trỏ đã được đặt vào thẻ <div> mới với id:", newDiv.id);
-  //   const div = document.getElementById("content");
-  //   if (document.activeElement === div) {
-  //     console.log("Div đang được focus");
-  //     // Tạo đối tượng Range và Selection
-  //     const range = document.createRange();
-  //     const selection = window.getSelection();
-
-  //     // Đặt Range vào trong thẻ <div> mới tạo
-  //     range.selectNodeContents(newDiv);
-
-  //     // Di chuyển con trỏ vào cuối thẻ <div> mới tạo
-  //     range.collapse(false); // `false` đặt con trỏ ở cuối, `true` đặt ở đầu
-
-  //     // Xóa các vùng chọn hiện tại và đặt vùng chọn mới
-  //     selection.removeAllRanges();
-  //     selection.addRange(range);
-  //   } else {
-  //     console.log("Div không được focus");
-  //   }
-  //   return;
-  // }
 
   // Duyệt qua các thẻ con của contentDiv và tìm thẻ có id > newDiv.id
   let inserted = false;
@@ -389,18 +387,6 @@ function XuLyGoODauContent(currentDiv, key) {
 
   console.log("Đã chèn thẻ <div> mới trước thẻ có id:", currentDiv.id);
 
-  // //gán lại id cho currenDiv và gửi update này cho các client khác
-  // const oldId = currentDiv.id;
-  // const nextDiv = getNextDiv();
-  // currentDiv.id =
-  //   ((readId(newDiv.id) + readId(nextDiv.id)) / 2).toFixed(5) + "," + priority;
-  // const idupdated = {
-  //   oldId: oldId,
-  //   newId: currentDiv.id,
-  // };
-  // socket.emit("modify-id", JSON.stringify(idupdated));
-
-  // Tạo đối tượng Range và Selection
   const range = document.createRange();
   const selection = window.getSelection();
 
@@ -640,8 +626,6 @@ function iterateThroughArraysForCompare(arr1, arr2) {
   let checkLoop;
   const maxLength = Math.max(arr1.length, arr2.length);
   for (let i = 0; i < maxLength; i++) {
-    //   console.log(i);
-    //lấy mảng Num của object, nếu không có object thì trả về []
     const arr1Num = getNumOfObject(arr1[i]);
     const arr2Num = getNumOfObject(arr2[i]);
     if (arr1Num.length == 0) {
@@ -699,10 +683,9 @@ onMounted(() => {
     const tmpIdUpdated = JSON.parse(idupdated);
     updateId(tmpIdUpdated);
   });
-  showCode.value = document.querySelector("#show-code");
   contentDiv.value = document.querySelector("#content");
   contentDiv.value.innerHTML = `
-        <div id=""></div></div><div id="1.2.3.4:A">a</div><div id="1.2.3.4:B">b</div><div id="1.2.5.4:A">c</div><div id="2.2.3.4:A">d</div><br>
+        <div id="1.2.3.4:A" class="bold" style="color: #FF0000;">a</div><div id="1.2.3.4:B" class="italic" style="color: #00FF00;">b</div><div id="1.2.5.4:A" style="font-weight: bold; color: #0000FF;">c</div><div id="2.2.3.4:A">d</div>
   `;
 });
 
@@ -715,7 +698,49 @@ onBeforeUnmount(() => {
   <div class="container">
     <div class="container mt-3">
       <div class="toolbar p-3 bg-light border rounded">
-        <div class="d-flex justify-content-start align-items-center mb-3">
+        <div class="d-flex justify-content-start align-items-center">
+          <!-- Toolbar buttons -->
+          <button class="btn btn-outline-secondary border-0">
+            <i class="fas fa-undo"></i>
+          </button>
+          <button class="btn btn-outline-secondary border-0 px-4">
+            <i class="fas fa-redo"></i>
+          </button>
+          <button class="btn btn-outline-secondary border-0 px-4">
+            <i class="fas fa-bold"></i>
+          </button>
+          <button class="btn btn-outline-secondary border-0 px-4">
+            <i class="fas fa-italic"></i>
+          </button>
+          <button class="btn btn-outline-secondary border-0 px-4">
+            <i class="fas fa-underline"></i>
+          </button>
+          <button class="btn btn-outline-secondary border-0 px-4">
+            <i class="fas fa-strikethrough"></i>
+          </button>
+          <button class="btn btn-outline-secondary border-0 px-4">
+            <i class="fas fa-align-left"></i>
+          </button>
+          <button class="btn btn-outline-secondary border-0 px-4">
+            <i class="fas fa-align-center"></i>
+          </button>
+          <button class="btn btn-outline-secondary border-0 px-4">
+            <i class="fas fa-align-right"></i>
+          </button>
+          <button class="btn btn-outline-secondary border-0 px-4">
+            <i class="fas fa-list-ul"></i>
+          </button>
+          <button class="btn btn-outline-secondary border-0 px-4">
+            <i class="fas fa-list-ol"></i>
+          </button>
+          <button class="btn btn-outline-secondary border-0 px-4">
+            <i class="fas fa-link"></i>
+          </button>
+          <button class="btn btn-outline-secondary">
+            <i class="fas fa-code"></i>
+          </button>
+        </div>
+        <div class="d-flex justify-content-start align-items-center mb-1 mt-3">
           <!-- Dropdown for document title -->
           <input
             type="text"
@@ -738,7 +763,9 @@ onBeforeUnmount(() => {
             <ul class="dropdown-menu" aria-labelledby="fileDropdown">
               <li><a class="dropdown-item" href="#">New</a></li>
               <li><a class="dropdown-item" href="#">Open</a></li>
-              <li><a class="dropdown-item" href="#">Save as txt</a></li>
+              <li>
+                <a class="dropdown-item" @click="exportToDocx">Save as docs</a>
+              </li>
               <li><a class="dropdown-item" href="#">Save as pdf</a></li>
             </ul>
           </div>
@@ -899,49 +926,6 @@ onBeforeUnmount(() => {
               style="height: 22px; width: 24px"
             />
           </div>
-        </div>
-
-        <div class="d-flex justify-content-start align-items-center">
-          <!-- Toolbar buttons -->
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-undo"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-redo"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-bold"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-italic"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-underline"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-strikethrough"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-align-left"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-align-center"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-align-right"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-list-ul"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-list-ol"></i>
-          </button>
-          <button class="btn btn-outline-secondary me-1">
-            <i class="fas fa-link"></i>
-          </button>
-          <button class="btn btn-outline-secondary">
-            <i class="fas fa-code"></i>
-          </button>
         </div>
       </div>
 

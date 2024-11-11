@@ -1572,28 +1572,12 @@ onBeforeUnmount(() => {
   socket.disconnect();
 });
 </script>
+
 <template>
   <div class="container">
     <div class="container mt-3">
       <div class="toolbar p-3 bg-light border rounded">
-        <div
-          class="d-flex align-items-center mb-2"
-          style="height: 60px; width: 100%"
-        >
-          <!-- Logo bên trái -->
-          <img
-            src="../assets/logo.png"
-            alt="Logo"
-            style="height: 50px; margin-right: 10px"
-          />
-          <input
-            type="label"
-            class="form-control me-2"
-            placeholder="Document"
-            style="width: 200px"
-          />
-
-          <!-- File Dropdown -->
+        <div class="d-flex justify-content-start align-items-center mb-3">
           <div class="dropdown me-2">
             <button
               class="btn btn-outline-secondary dropdown-toggle"
@@ -1601,7 +1585,6 @@ onBeforeUnmount(() => {
               id="fileDropdown"
               data-bs-toggle="dropdown"
               aria-expanded="false"
-              style="width: 70px; height: 35px"
             >
               File
             </button>
@@ -1625,58 +1608,6 @@ onBeforeUnmount(() => {
             />
           </div>
 
-          <!-- Format Dropdown -->
-          <div class="dropdown me-2">
-            <button
-              class="btn btn-outline-secondary dropdown-toggle"
-              type="button"
-              id="formatDropdown"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-              style="width: 90px; height: 35px"
-            >
-              Format
-            </button>
-            <ul class="dropdown-menu" aria-labelledby="formatDropdown">
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H1')"
-                  >Heading 1</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H2')"
-                  >Heading 2</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H3')"
-                  >Heading 3</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H4')"
-                  >Heading 4</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H5')"
-                  >Heading 5</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H6')"
-                  >Heading 6</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('P')"
-                  >Paragraph</a
-                >
-              </li>
-            </ul>
-          </div>
-
-          <!-- Font size Dropdown -->
           <div class="dropdown me-2">
             <button
               class="btn btn-outline-secondary dropdown-toggle"
@@ -1684,16 +1615,12 @@ onBeforeUnmount(() => {
               id="fontSizeDropdown"
               data-bs-toggle="dropdown"
               aria-expanded="false"
-              style="width: 100px; height: 35px"
             >
               Font size
             </button>
             <ul class="dropdown-menu" aria-labelledby="fontSizeDropdown">
               <li>
-                <a
-                  class="dropdown-item"
-                  href="#"
-                  onclick="changeFontSize('8pt')"
+                <a class="dropdown-item" href="#" @click="changeFontSize('8pt')"
                   >Extra small</a
                 >
               </li>
@@ -1701,7 +1628,7 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  onclick="changeFontSize('10pt')"
+                  @click="changeFontSize('10pt')"
                   >Small</a
                 >
               </li>
@@ -1709,7 +1636,7 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  onclick="changeFontSize('12pt')"
+                  @click="changeFontSize('12pt')"
                   >Regular</a
                 >
               </li>
@@ -1717,7 +1644,7 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  onclick="changeFontSize('14pt')"
+                  @click="changeFontSize('14pt')"
                   >Medium</a
                 >
               </li>
@@ -1725,7 +1652,7 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  onclick="changeFontSize('18pt')"
+                  @click="changeFontSize('18pt')"
                   >Large</a
                 >
               </li>
@@ -1733,7 +1660,7 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  onclick="changeFontSize('24pt')"
+                  @click="changeFontSize('24pt')"
                   >Extra Large</a
                 >
               </li>
@@ -1741,115 +1668,18 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  onclick="changeFontSize('32pt')"
+                  @click="changeFontSize('32pt')"
                   >Big</a
                 >
               </li>
             </ul>
           </div>
 
-          <!-- Color Picker -->
-
-          <div class="d-flex align-items-center ms-auto" style="margin: 0">
-            <div class="d-flex align-items-center me-3" style="margin: 0">
-              <img
-                src="../assets/timkiemlg.png"
-                alt="Search Icon"
-                style="height: 20px; width: 20px; margin-right: 10px"
-              />
-              <input
-                type="text"
-                class="form-control"
-                placeholder="Looking for tools"
-                style="
-                  width: 200px;
-                  height: 40px;
-                  font-size: 15px;
-                  margin-right: 20px;
-                "
-              />
-
-              <button
-                class="btn btn-dark dropdown-toggle"
-                type="button"
-                id="shareDropdown"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-                style="margin: 0"
-              >
-                Share
-              </button>
-              <ul
-                class="dropdown-menu dropdown-menu-end"
-                aria-labelledby="shareDropdown"
-                style="margin: 0"
-              >
-                <li>
-                  <a
-                    class="dropdown-item"
-                    href="#"
-                    onclick="copyRoomID()"
-                    style="margin: 0"
-                    >Sao chép ID Room</a
-                  >
-                </li>
-              </ul>
-            </div>
-
-            <!-- Avatar Image Right Next to "Chia Sẻ" Button -->
-            <img
-              src="../assets/gg.png"
-              alt="Avatar"
-              style="height: 35px; width: 35px; border-radius: 50%; margin: 0"
-              onclick="avatarClicked()"
-            />
-          </div>
-        </div>
-
-        <div style="width: 100%">
-          <hr
-            style="border: none; border-top: 2px solid #000; margin-top: 10px"
-          />
-        </div>
-
-        <div class="d-flex justify-content-left align-items-center">
-          <button
-            class="btn btn-outline-secondary"
-            style="margin-right: 10px"
-            @click="makeSelectedDivsBold"
-          >
-            <i class="fas fa-bold"></i>
-          </button>
-          <button
-            class="btn btn-outline-secondary"
-            style="margin-right: 10px"
-            @click="makeSelectedDivsItalic"
-          >
-            <i class="fas fa-italic"></i>
-          </button>
-          <button class="btn btn-outline-secondary" style="margin-right: 10px">
-            <i class="fas fa-underline"></i>
-          </button>
-          <button class="btn btn-outline-secondary" style="margin-right: 10px">
-            <i class="fas fa-strikethrough"></i>
-          </button>
-          <button class="btn btn-outline-secondary" style="margin-right: 10px">
-            <i class="fas fa-align-left"></i>
-          </button>
-          <button class="btn btn-outline-secondary" style="margin-right: 10px">
-            <i class="fas fa-align-center"></i>
-          </button>
-          <button class="btn btn-outline-secondary" style="margin-right: 10px">
-            <i class="fas fa-align-right"></i>
-          </button>
-
           <div
             class="d-flex align-items-center border border-secondary px-2 py-1 rounded"
           >
-            <!-- Label for Color Picker -->
             <label for="textColorPicker" class="me-2">Color</label>
 
-            <!-- Color Picker -->
             <input
               type="color"
               id="textColorPicker"
@@ -1857,18 +1687,15 @@ onBeforeUnmount(() => {
               @input="handleColorChange"
               value="#000000"
               title="Choose text color"
-              style="height: 28px; width: 25px"
+              style="height: 22px; width: 24px"
             />
           </div>
 
-          <!-- Background Color Picker -->
           <div
             class="d-flex align-items-center border border-secondary px-2 py-1 rounded ms-2"
           >
-            <!-- Label for Color Picker -->
             <label for="textColorPicker" class="me-2">Background</label>
 
-            <!-- Color Picker -->
             <input
               type="color"
               id="textColorPicker"
@@ -1876,17 +1703,56 @@ onBeforeUnmount(() => {
               @input="handleBackGroundColorChange"
               value="#000000"
               title="Choose text color"
-              style="height: 28px; width: 28px"
+              style="height: 22px; width: 24px"
             />
           </div>
         </div>
+
+        <div class="d-flex justify-content-start align-items-center">
+          <button
+            class="btn btn-outline-secondary me-1"
+            @click="makeSelectedDivsBold"
+          >
+            <i class="fas fa-bold"></i>
+          </button>
+          <button
+            class="btn btn-outline-secondary me-1"
+            @click="makeSelectedDivsItalic"
+          >
+            <i class="fas fa-italic"></i>
+          </button>
+          <button
+            class="btn btn-outline-secondary me-1"
+            @click="makeSelectedDivsUnderLined"
+          >
+            <i class="fas fa-underline"></i>
+          </button>
+          <button
+            class="btn btn-outline-secondary me-1"
+            @click="makeSelectedDivsStrikethrough"
+          >
+            <i class="fas fa-strikethrough"></i>
+          </button>
+          <button
+            class="btn btn-outline-secondary me-1"
+            @click="makeSelectedDivsAlign('left')"
+          >
+            <i class="fas fa-align-left"></i>
+          </button>
+          <button
+            class="btn btn-outline-secondary me-1"
+            @click="makeSelectedDivsAlign('center')"
+          >
+            <i class="fas fa-align-center"></i>
+          </button>
+          <button
+            class="btn btn-outline-secondary me-1"
+            @click="makeSelectedDivsAlign('right')"
+          >
+            <i class="fas fa-align-right"></i>
+          </button>
+        </div>
       </div>
-      <div style="width: 100%">
-        <hr
-          style="border: none; border-top: 2px solid #000; margin-top: 20px"
-        />
-      </div>
-      <!-- Editable c`ontent area -->
 
       <div
         id="content"

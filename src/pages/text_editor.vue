@@ -1,30 +1,49 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import axios from "axios";
-import { useRouter } from "vue-router";
-import { socket } from "../socket";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
-const props = defineProps(["id", "ownerIdDocument"]);
-let active = false;
+import { useRouter } from "vue-router";
+import { socket } from "../socket";
+let documentDetail = ref("");
+
+const fetchDocumentInfor = async () => {
+  try {
+    const result = await axios.get(
+      `${import.meta.env.VITE_SERVER_URL}/documents/detail/${props.id}`,
+      {
+        withCredentials: true,
+      }
+    );
+    documentDetail.value = result.data.document;
+    // console.log("Thông tin tài liệu:", documentDetail.value);
+  } catch (error) {
+    console.error("Lỗi khi lấy thông tin tài liệu:", error);
+  }
+};
+
+const copyRoomID = () => {
+  if (documentDetail.value) {
+    navigator.clipboard
+      .writeText(documentDetail.value.shareCode)
+      .then(() => {})
+      .catch((err) => {
+        console.error("Lỗi khi sao chép vào bộ nhớ tạm:", err);
+      });
+  } else {
+    console.warn("Không có nội dung để sao chép.");
+  }
+};
+onMounted(() => {
+  fetchDocumentInfor();
+  copyRoomID();
+});
 const openFile = () => {
   document.getElementById("fileInput").click();
 };
-function rgbToHex(rgb) {
-  const result = rgb.match(/\d+/g);
-  return result
-    ? (
-        (1 << 24) +
-        (parseInt(result[0]) << 16) +
-        (parseInt(result[1]) << 8) +
-        parseInt(result[2])
-      )
-        .toString(16)
-        .slice(1)
-    : "000000";
-}
+
 const handleFileInput = async (event) => {
   const file = event.target.files[0];
   if (file) {
@@ -53,11 +72,12 @@ const handleFileInput = async (event) => {
 
         const xmlContent = zip.file("word/document.xml").asText();
         const { htmlContent, charDataArray } = convertDocxXmlToHtml(xmlContent);
-
+        // console.log(">>>>>>>>>>>>>>>>>: ", charDataArray);
         contentDiv.innerHTML = htmlContent;
 
         charDataArray.forEach((charData) => {
           socket.emit("insert-one", JSON.stringify(charData));
+          socket.emit("update-style", JSON.stringify(charData));
         });
       } catch (error) {
         console.error("Error reading DOCX file:", error);
@@ -87,7 +107,6 @@ const handleFileInput = async (event) => {
     });
   }
 };
-
 function convertDocxXmlToHtml(xmlContent) {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(xmlContent, "application/xml");
@@ -113,10 +132,11 @@ function convertDocxXmlToHtml(xmlContent) {
         }
 
         const colorNode = r.getElementsByTagName("w:color")[0];
-        let style = "";
+        let styles = {};
+
         if (colorNode) {
           const colorValue = colorNode.getAttribute("w:val");
-          style += `color: #${colorValue}; `;
+          styles.color = "#" + colorValue;
         }
 
         const boldNode = r.getElementsByTagName("w:b")[0];
@@ -127,20 +147,27 @@ function convertDocxXmlToHtml(xmlContent) {
           italicNode && italicNode.getAttribute("w:val") !== "false";
 
         if (isBold) {
-          style += "font-weight: bold; ";
+          styles.fontWeight = "bold";
         }
         if (isItalic) {
-          style += "font-style: italic; ";
+          styles.fontStyle = "italic";
         }
+
+        styles.display = "inline";
 
         for (const char of textContent) {
           const charId = previousId ? spawnID(previousId, null) : "1:A";
-          const charDiv = `<div id="${charId}" style="${style} display: inline;">${char}</div>`;
+
+          const styleString = Object.entries(styles)
+            .map(([key, value]) => `${key}: ${value};`)
+            .join(" ");
+
+          const charDiv = `<div id="${charId}" style="${styleString}">${char}</div>`;
 
           const charData = {
             id: charId,
             content: char,
-            style: style + "display: inline;",
+            styles: { ...styles },
           };
           charDataArray.push(charData);
 
@@ -157,7 +184,7 @@ function convertDocxXmlToHtml(xmlContent) {
       const lineBreakData = {
         id: lineBreakId,
         content: "&nbsp;",
-        style: "display: block;",
+        styles: { display: "block" },
       };
       charDataArray.push(lineBreakData);
 
@@ -170,7 +197,7 @@ function convertDocxXmlToHtml(xmlContent) {
       const newLineData = {
         id: newLineId,
         content: "",
-        style: "display: block;",
+        styles: { display: "block" },
       };
       charDataArray.push(newLineData);
 
@@ -183,45 +210,94 @@ function convertDocxXmlToHtml(xmlContent) {
 
   return { htmlContent, charDataArray };
 }
-
 const exportToDocx = async () => {
   try {
     const contentElement = document.getElementById("content");
     const divElements = contentElement.querySelectorAll("div");
 
     const paragraphs = [];
+    let textRuns = [];
+    let previousTextAlign = "left"; // Store the alignment for inline elements
+    let isFirstInlineElement = true; // Flag to track the first inline element
 
     divElements.forEach((element) => {
-      const text = element.innerText;
+      const text = element.innerText.trim(); // Trim whitespace from text
 
+      const isEmptyText = !text;
+      const isBlockElement = element.style.display === "block";
+      const elementAlignment = element.style.textAlign || "left";
+
+      // If we encounter a block element, create a new paragraph and reset inline logic
+      if (isBlockElement) {
+        if (textRuns.length > 0) {
+          // Create a new paragraph with the collected text runs and the previous alignment
+          const paragraph = new Paragraph({
+            children: textRuns,
+            alignment: previousTextAlign,
+          });
+          paragraphs.push(paragraph);
+          textRuns = []; // Reset text runs for the new paragraph
+        }
+
+        // Create an empty paragraph for line breaks if the block element has empty text
+        if (isEmptyText) {
+          paragraphs.push(new Paragraph({})); // Add an empty paragraph for the line break
+        }
+
+        // Update alignment for block elements and reset inline element tracking
+        previousTextAlign = elementAlignment;
+        isFirstInlineElement = true;
+        return; // Skip to the next element
+      }
+
+      // Handle inline elements and keep them on the same line
+      if (isFirstInlineElement) {
+        previousTextAlign = elementAlignment; // Set the alignment for the first inline element
+        isFirstInlineElement = false; // Subsequent inline elements will use this alignment
+      }
+
+      // Convert style properties to docx-compatible formats
       const isBold = element.style.fontWeight === "bold";
       const isItalic = element.style.fontStyle === "italic";
-      let color = element.style.color || "000000";
+      const isUnderline = element.style.textDecoration === "underline";
+      let color = element.style.color || "#000000";
+      let bg = element.style.backgroundColor || "#FFFFFF";
+      console.log(text, ": ", previousTextAlign);
 
-      if (color.startsWith("rgb")) {
-        color = rgbToHex(color);
-      } else {
-        color = color.replace("#", "");
-      }
+      // Convert RGB colors to HEX if needed
+      color = color.startsWith("rgb")
+        ? rgbToHex(color)
+        : color.replace("#", "").toUpperCase();
+      bg = bg.startsWith("rgb")
+        ? rgbToHex(bg)
+        : bg.replace("#", "").toUpperCase();
 
       const textRun = new TextRun({
         text: text,
         bold: isBold,
         italics: isItalic,
+        underline: isUnderline ? "single" : undefined,
         color: color,
+        shading: {
+          type: "CLEAR",
+          color: "auto",
+          fill: bg,
+        },
       });
 
-      if (element.style.display === "block") {
-        paragraphs.push(new Paragraph({ children: [textRun] }));
-      } else {
-        if (paragraphs.length > 0) {
-          paragraphs[paragraphs.length - 1].addChildElement(textRun);
-        } else {
-          paragraphs.push(new Paragraph({ children: [textRun] }));
-        }
-      }
+      textRuns.push(textRun);
     });
 
+    // Add any remaining text runs as a final paragraph
+    if (textRuns.length > 0) {
+      const finalParagraph = new Paragraph({
+        children: textRuns,
+        alignment: previousTextAlign,
+      });
+      paragraphs.push(finalParagraph);
+    }
+
+    // Create the Word document
     const doc = new Document({
       sections: [
         {
@@ -229,17 +305,35 @@ const exportToDocx = async () => {
           children: paragraphs,
         },
       ],
-      creator: "Your App Name",
-      title: "Exported Content",
-      description: "Generated document from HTML content",
     });
 
+    // Generate and save the document as a .docx file
     const blob = await Packer.toBlob(doc);
-    saveAs(blob, "content_structure.docx");
+    saveAs(blob, "exported-document.docx");
   } catch (error) {
     console.error("Error exporting document:", error);
   }
 };
+
+const rgbToHex = (rgb) => {
+  const result = rgb.match(/\d+/g);
+  if (result) {
+    return (
+      (1 << 24) +
+      (parseInt(result[0]) << 16) +
+      (parseInt(result[1]) << 8) +
+      parseInt(result[2])
+    )
+      .toString(16)
+      .slice(1)
+      .toUpperCase();
+  }
+  return rgb;
+};
+
+const props = defineProps(["id", "ownerIdDocument"]);
+let active = false;
+
 const showCode = ref(null);
 const contentDiv = ref(null);
 var pri;
@@ -275,18 +369,23 @@ const XuLyNut = (event) => {
     return;
   }
 
-  console.log("Bạn đã nhấn phím:", event.key);
-
   let currentDiv = getCurrentDiv();
   if (currentDiv.id === "content") {
     currentDiv = contentDiv.value.querySelector("div");
   }
   let nextDiv = getNextDiv();
+  // console.log("current Div ", currentDiv, " nextDiv ", nextDiv);
+
+  let kiemTraCanLe = -1;
+  if (currentDiv.id != "") {
+    kiemTraCanLe = checkAligned(currentDiv.id);
+  }
 
   if (event.key.length == 1) {
     if (currentDiv) {
+      let leftMost;
       if (currentDiv.id == "") {
-        console.log("con trỏ ở id rỗng");
+        // console.log("con trỏ ở id rỗng");
         if (nextDiv) {
           XuLyGoODauContent(nextDiv, event.key);
           return;
@@ -303,15 +402,21 @@ const XuLyNut = (event) => {
       }
 
       if (checkConTro(currentDiv)) {
-        console.log("Con trỏ ở đầu content ", currentDiv.id);
+        // console.log("Con trỏ ở đầu content ", currentDiv.id);
         if (currentDiv.textContent == "" && currentDiv.id != "") {
-          console.log("gặp phím enter");
+          // console.log("gặp phím enter");
+          if (nextDiv) {
+            leftMost = findLeftMostInSameRow(nextDiv.id);
+          }
         } else {
           const previousDiv = currentDiv.previousElementSibling;
           if (previousDiv.textContent == "" && previousDiv.id != "") {
-            console.log("gặp phím enter 2");
+            // console.log("gặp phím enter 2");
             nextDiv = currentDiv;
             currentDiv = previousDiv;
+            if (nextDiv) {
+              leftMost = findLeftMostInSameRow(nextDiv.id);
+            }
           } else {
             XuLyGoODauContent(currentDiv, event.key);
             return;
@@ -335,7 +440,7 @@ const XuLyNut = (event) => {
       } else {
         currentDiv.parentNode.appendChild(newDiv);
       }
-      console.log("Đã chèn thẻ <div> mới sau thẻ có id:", currentDiv.id);
+      // console.log("Đã chèn thẻ <div> mới sau thẻ có id:", currentDiv.id);
 
       const range = document.createRange();
       const selection = window.getSelection();
@@ -347,28 +452,64 @@ const XuLyNut = (event) => {
       selection.removeAllRanges();
       selection.addRange(range);
 
-      console.log("Con trỏ đã được đặt vào thẻ <div> mới với id:", newDiv.id);
+      // console.log("Con trỏ đã được đặt vào thẻ <div> mới với id:", newDiv.id);
 
       const divVuaTao = {
         id: newDiv.id,
         content: newDiv.textContent,
       };
       socket.emit("insert-one", JSON.stringify(divVuaTao));
+      if (kiemTraCanLe != -1) {
+        if (currentDiv.textContent != "") {
+          handleAlignedInput(currentDiv, newDiv, kiemTraCanLe);
+        } else {
+          const marginLeftOld = leftMost.style.marginLeft;
+          const checkAlignOld = leftMost.style.textAlign;
+          let divStyle = {
+            time: Date.now().toString(),
+            pri: pri,
+            id: leftMost.id,
+            styles: {
+              marginLeft: "",
+              textAlign: "",
+            },
+          };
+          if (applyStyle(divStyle)) {
+            socket.emit("update-style", JSON.stringify(divStyle));
+          }
+          divStyle = {
+            time: Date.now().toString(),
+            pri: pri,
+            id: newDiv.id,
+            styles: {
+              marginLeft: marginLeftOld,
+              textAlign: checkAlignOld,
+            },
+          };
+          if (applyStyle(divStyle)) {
+            socket.emit("update-style", JSON.stringify(divStyle));
+          }
+          handleAlignedInput(newDiv, newDiv, kiemTraCanLe);
+        }
+      }
     } else {
-      console.log("khong co div trc");
+      // console.log("khong co div trc");
     }
   } else {
     if (event.key == "Backspace") {
       if (currentDiv) {
+        if (currentDiv.style.display == "block" && kiemTraCanLe != -1) {
+          // console.log("không xóa enter khi có căn lề");
+          return;
+        }
         if (currentDiv.id == "") {
           const lastDiv = contentDiv.value.querySelector("div:last-of-type");
           if (lastDiv.id == "") {
-            console.log("không xóa id rỗng");
+            // console.log("không xóa id rỗng");
             return;
           } else {
             const lastDiv = contentDiv.value.querySelector("div:last-of-type");
             if (lastDiv.id == "") {
-              XuLyGoKhiContentTrong(event.key);
               return;
             } else {
               currentDiv = lastDiv;
@@ -377,15 +518,19 @@ const XuLyNut = (event) => {
           }
         }
         if (checkConTro(currentDiv)) {
-          console.log("Con trỏ ở đầu content ", currentDiv.id);
+          // console.log("Con trỏ ở đầu content ", currentDiv.id);
           if (currentDiv.textContent == "" && currentDiv.id != "") {
-            console.log("gặp phím enter");
+            // console.log("gặp phím enter");
           } else {
             const previousDiv = currentDiv.previousElementSibling;
             if (previousDiv.textContent == "" && previousDiv.id != "") {
-              console.log("gặp phím enter 2");
+              // console.log("gặp phím enter 2");
               nextDiv = currentDiv;
               currentDiv = previousDiv;
+              if (currentDiv.style.display == "block" && kiemTraCanLe != -1) {
+                // console.log("không xóa enter khi có căn lề");
+                return;
+              }
             } else {
               return;
             }
@@ -393,13 +538,50 @@ const XuLyNut = (event) => {
         }
 
         const selection = window.getSelection();
-
+        let checkXemDaSuaCanLeChua = false;
         if (currentDiv.previousSibling) {
           const previousDiv = currentDiv.previousSibling;
+          // console.log("pre", previousDiv);
 
           const idCurrentDiv = currentDiv.id;
-
-          currentDiv.remove();
+          if (
+            kiemTraCanLe != -1 &&
+            currentDiv.textContent != "" &&
+            currentDiv.id != "" &&
+            previousDiv.id != "" &&
+            previousDiv.textContent != ""
+          ) {
+            handleAlignedInput(previousDiv, currentDiv, kiemTraCanLe, true);
+            checkXemDaSuaCanLeChua = true;
+          }
+          if (
+            kiemTraCanLe != -1 &&
+            currentDiv.style.textAlign != "" &&
+            nextDiv &&
+            nextDiv.id != "" &&
+            nextDiv.textContent != ""
+          ) {
+            if (checkXemDaSuaCanLeChua == false) {
+              handleAlignedInput(currentDiv, currentDiv, kiemTraCanLe, true);
+            }
+            const marginLeftOld = currentDiv.style.marginLeft;
+            const checkAlignOld = currentDiv.style.textAlign;
+            const divStyle = {
+              time: Date.now().toString(),
+              pri: pri,
+              id: nextDiv.id,
+              styles: {
+                marginLeft: marginLeftOld,
+                textAlign: checkAlignOld,
+              },
+            };
+            if (applyStyle(divStyle)) {
+              socket.emit("update-style", JSON.stringify(divStyle));
+            }
+            currentDiv.remove();
+          } else {
+            currentDiv.remove();
+          }
 
           const newRange = document.createRange();
           newRange.selectNodeContents(previousDiv);
@@ -408,31 +590,26 @@ const XuLyNut = (event) => {
           selection.removeAllRanges();
           selection.addRange(newRange);
 
-          console.log(
-            `Đã xóa ${idCurrentDiv} và di chuyển con trỏ về cuối của div trước đó.`,
-            previousDiv.id
-          );
-
           const charToDelete = {
             id: idCurrentDiv,
           };
           socket.emit("delete-one", JSON.stringify(charToDelete));
         } else {
-          console.log("không có div nằm trước currentDiv");
+          // console.log("không có div nằm trước currentDiv");
         }
       }
     } else if (event.key == "Enter") {
       if (currentDiv) {
         if (window.getComputedStyle(currentDiv).display === "block") {
-          console.log("không chèn thêm phím enter");
+          // console.log("không chèn thêm phím enter");
           return;
         }
         if (nextDiv && window.getComputedStyle(nextDiv).display === "block") {
-          console.log("không chèn thêm phím enter 2 ");
+          // console.log("không chèn thêm phím enter 2 ");
           return;
         }
         if (currentDiv.id == "") {
-          console.log("con trỏ ở id rỗng");
+          // console.log("con trỏ ở id rỗng");
           if (nextDiv) {
             XuLyGoODauContent(nextDiv, event.key);
             return;
@@ -445,14 +622,14 @@ const XuLyNut = (event) => {
               currentDiv = lastDiv;
               nextDiv = null;
               if (window.getComputedStyle(currentDiv).display === "block") {
-                console.log("không chèn thêm phím enter");
+                // console.log("không chèn thêm phím enter");
                 return;
               }
               if (
                 nextDiv &&
                 window.getComputedStyle(nextDiv).display === "block"
               ) {
-                console.log("không chèn thêm phím enter 2 ");
+                // console.log("không chèn thêm phím enter 2 ");
                 return;
               }
             }
@@ -460,13 +637,13 @@ const XuLyNut = (event) => {
         }
 
         if (checkConTro(currentDiv)) {
-          console.log("Con trỏ ở đầu content ", currentDiv.id);
+          // console.log("Con trỏ ở đầu content ", currentDiv.id);
           if (currentDiv.textContent == "" && currentDiv.id != "") {
-            console.log("gặp phím enter");
+            // console.log("gặp phím enter");
           } else {
             const previousDiv = currentDiv.previousElementSibling;
             if (previousDiv.textContent == "" && previousDiv.id != "") {
-              console.log("gặp phím enter 2");
+              // console.log("gặp phím enter 2");
               nextDiv = currentDiv;
               currentDiv = previousDiv;
             } else {
@@ -490,7 +667,7 @@ const XuLyNut = (event) => {
         } else {
           currentDiv.parentNode.appendChild(newDiv);
         }
-        console.log("Đã chèn thẻ <div> mới sau thẻ có id:", currentDiv.id);
+        // console.log("Đã chèn thẻ <div> mới sau thẻ có id:", currentDiv.id);
 
         const range = document.createRange();
         const selection = window.getSelection();
@@ -502,7 +679,7 @@ const XuLyNut = (event) => {
         selection.removeAllRanges();
         selection.addRange(range);
 
-        console.log("Con trỏ đã được đặt vào thẻ <div> mới với id:", newDiv.id);
+        // console.log("Con trỏ đã được đặt vào thẻ <div> mới với id:", newDiv.id);
 
         const divVuaTao = {
           id: newDiv.id,
@@ -517,20 +694,19 @@ const XuLyNut = (event) => {
         };
         socket.emit("update-style", JSON.stringify(divStyle));
       } else {
-        console.log("khong co div trc");
+        // console.log("khong co div trc");
       }
     } else if (event.key === "ArrowUp") {
       if (currentDiv) {
         if (currentDiv.id == "") {
-          console.log("con trỏ ở id rỗng");
+          // console.log("con trỏ ở id rỗng");
           if (nextDiv) {
           } else {
             const lastDiv = contentDiv.value.querySelector("div:last-of-type");
             if (lastDiv.id == "") {
-              XuLyGoKhiContentTrong(event.key);
               return;
             } else {
-              console.log("đã xử lý");
+              // console.log("đã xử lý");
               currentDiv = lastDiv;
               nextDiv = null;
             }
@@ -539,7 +715,7 @@ const XuLyNut = (event) => {
 
         const divAbove = getDivAbove(currentDiv);
         if (!divAbove) {
-          console.log("không có div nằm trên");
+          // console.log("không có div nằm trên");
           return;
         }
         const selection = window.getSelection();
@@ -551,20 +727,19 @@ const XuLyNut = (event) => {
         selection.removeAllRanges();
         selection.addRange(newRange);
       } else {
-        console.log("khong co div trc");
+        // console.log("khong co div trc");
       }
     } else if (event.key === "ArrowDown") {
       if (currentDiv) {
         if (currentDiv.id == "") {
-          console.log("con trỏ ở id rỗng");
+          // console.log("con trỏ ở id rỗng");
           if (nextDiv) {
           } else {
             const lastDiv = contentDiv.value.querySelector("div:last-of-type");
             if (lastDiv.id == "") {
-              XuLyGoKhiContentTrong(event.key);
               return;
             } else {
-              console.log("đã xử lý");
+              // console.log("đã xử lý");
               currentDiv = lastDiv;
               nextDiv = null;
             }
@@ -573,7 +748,7 @@ const XuLyNut = (event) => {
 
         const divBelow = getDivBelow(currentDiv);
         if (!divBelow) {
-          console.log("không có div nằm dưới");
+          // console.log("không có div nằm dưới");
           return;
         }
         const selection = window.getSelection();
@@ -585,14 +760,14 @@ const XuLyNut = (event) => {
         selection.removeAllRanges();
         selection.addRange(newRange);
       } else {
-        console.log("khong co div trc");
+        // console.log("khong co div trc");
       }
     }
 
     if (nextDiv) {
-      console.log("Thẻ <div> phía sau có id:", nextDiv.id);
+      // console.log("Thẻ <div> phía sau có id:", nextDiv.id);
     } else {
-      console.log("Không có thẻ <div> nào phía sau.");
+      // console.log("Không có thẻ <div> nào phía sau.");
     }
   }
 };
@@ -648,7 +823,7 @@ function updateInsertion(kiTu) {
     lastDiv.insertAdjacentElement("afterend", newDiv);
   }
 
-  console.log("Thẻ mới đã được chèn:", newDiv);
+  // console.log("Thẻ mới đã được chèn:", newDiv);
 }
 function updateDetele(Kitu) {
   const divToDelete = document.getElementById(Kitu.id);
@@ -656,9 +831,9 @@ function updateDetele(Kitu) {
   const div = document.getElementById("content");
 
   if (document.activeElement === div) {
-    console.log("Div đang được focus");
+    // console.log("Div đang được focus");
   } else {
-    console.log("Div không được focus");
+    // console.log("Div không được focus");
     divToDelete.remove();
     return;
   }
@@ -680,7 +855,7 @@ function updateDetele(Kitu) {
         selection.removeAllRanges();
         selection.addRange(newRange);
       } else {
-        console.log("khong co selection");
+        // console.log("khong co selection");
       }
     } else {
       divToDelete.remove();
@@ -692,11 +867,11 @@ function updateDetele(Kitu) {
         selection.removeAllRanges();
         selection.addRange(newRange);
       } else {
-        console.log("khong co selection");
+        // console.log("khong co selection");
       }
     }
   } else {
-    console.log(`không tìm thấy div với id ${Kitu.id} để xóa`);
+    // console.log(`không tìm thấy div với id ${Kitu.id} để xóa`);
   }
 }
 function updateId(idupdated) {
@@ -755,6 +930,15 @@ function spawnID(id1, id2) {
 }
 
 function XuLyGoODauContent(currentDiv, key) {
+  const kiemTraCanLe = checkAligned(currentDiv.id);
+  // console.log(kiemTraCanLe);
+  let leftMost;
+  if (currentDiv.textContent != "") {
+    leftMost = findLeftMostInSameRow(currentDiv.id);
+  } else {
+    leftMost = findLeftMostInSameRow(currentDiv.nextElementSibling.id);
+  }
+
   var needUpdateStyle = false;
 
   const newDiv = document.createElement("div");
@@ -774,8 +958,37 @@ function XuLyGoODauContent(currentDiv, key) {
   }
 
   currentDiv.parentNode.insertBefore(newDiv, currentDiv);
+  if (kiemTraCanLe != -1 && needUpdateStyle == false) {
+    const marginLeftOld = leftMost.style.marginLeft;
+    const checkAlignOld = leftMost.style.textAlign;
+    let divStyle = {
+      time: Date.now().toString(),
+      pri: pri,
+      id: leftMost.id,
+      styles: {
+        marginLeft: "",
+        textAlign: "",
+      },
+    };
+    if (applyStyle(divStyle)) {
+      socket.emit("update-style", JSON.stringify(divStyle));
+    }
+    divStyle = {
+      time: Date.now().toString(),
+      pri: pri,
+      id: newDiv.id,
+      styles: {
+        marginLeft: marginLeftOld,
+        textAlign: checkAlignOld,
+      },
+    };
+    if (applyStyle(divStyle)) {
+      socket.emit("update-style", JSON.stringify(divStyle));
+    }
+    handleAlignedInput(newDiv, newDiv, kiemTraCanLe);
+  }
 
-  console.log("Đã chèn thẻ <div> mới trước thẻ có id:", currentDiv.id);
+  // console.log("Đã chèn thẻ <div> mới trước thẻ có id:", currentDiv.id);
 
   const range = document.createRange();
   const selection = window.getSelection();
@@ -787,7 +1000,7 @@ function XuLyGoODauContent(currentDiv, key) {
   selection.removeAllRanges();
   selection.addRange(range);
 
-  console.log("Con trỏ đã được đặt vào thẻ <div> mới với id:", newDiv.id);
+  // console.log("Con trỏ đã được đặt vào thẻ <div> mới với id:", newDiv.id);
 
   const divVuaTao = {
     id: newDiv.id,
@@ -846,7 +1059,7 @@ function XuLyGoKhiContentTrong(key) {
   selection.removeAllRanges();
   selection.addRange(range);
 
-  console.log("Con trỏ đã được đặt vào thẻ <div> mới với id:", newDiv.id);
+  // console.log("Con trỏ đã được đặt vào thẻ <div> mới với id:", newDiv.id);
 
   const divVuaTao = {
     id: newDiv.id,
@@ -1109,7 +1322,7 @@ function makeSelectedDivsBold() {
       }
     });
   } else {
-    console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
+    // console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
   }
 }
 
@@ -1147,7 +1360,7 @@ function makeSelectedDivsUnderLined() {
       }
     });
   } else {
-    console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
+    // console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
   }
 }
 
@@ -1185,45 +1398,82 @@ function makeSelectedDivsStrikethrough() {
       }
     });
   } else {
-    console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
+    // console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
   }
 }
 
 function makeSelectedDivsAlign(input) {
   const selectedDivIds = getSelectedDivIds();
   if (selectedDivIds.length > 0) {
-    selectedDivIds.forEach((id) => {
-      const div = document.getElementById(id);
-      if (div) {
-        if (div.style.textAlign === input) {
+    let checkLeftmost;
+    if (input == "center") {
+      selectedDivIds.forEach((divId) => {
+        const leftMost = findLeftMostInSameRow(divId);
+        if (checkLeftmost != leftMost) {
+          const marginLeftValue = calculateMarginLeftForCenterAlign(
+            leftMost.id
+          );
           const divStyle = {
             time: Date.now().toString(),
             pri: pri,
-            id: div.id,
+            id: leftMost.id,
             styles: {
+              marginLeft: marginLeftValue + "px",
+              textAlign: "center",
+            },
+          };
+          if (applyStyle(divStyle)) {
+            socket.emit("update-style", JSON.stringify(divStyle));
+          }
+          checkLeftmost = leftMost;
+        }
+      });
+      return;
+    } else if (input == "right") {
+      selectedDivIds.forEach((divId) => {
+        const leftMost = findLeftMostInSameRow(divId);
+        if (checkLeftmost != leftMost) {
+          const marginLeftValue = calculateMarginLeftForRightAlign(leftMost.id);
+          const divStyle = {
+            time: Date.now().toString(),
+            pri: pri,
+            id: leftMost.id,
+            styles: {
+              marginLeft: marginLeftValue + "px",
+              textAlign: "right",
+            },
+          };
+          if (applyStyle(divStyle)) {
+            socket.emit("update-style", JSON.stringify(divStyle));
+          }
+          checkLeftmost = leftMost;
+        }
+      });
+      return;
+    } else if (input == "left") {
+      selectedDivIds.forEach((divId) => {
+        const leftMost = findLeftMostInSameRow(divId);
+        if (checkLeftmost != leftMost) {
+          const marginLeftValue = 0;
+          const divStyle = {
+            time: Date.now().toString(),
+            pri: pri,
+            id: leftMost.id,
+            styles: {
+              marginLeft: "",
               textAlign: "",
             },
           };
           if (applyStyle(divStyle)) {
             socket.emit("update-style", JSON.stringify(divStyle));
           }
-        } else {
-          const divStyle = {
-            time: Date.now().toString(),
-            pri: pri,
-            id: div.id,
-            styles: {
-              textAlign: input,
-            },
-          };
-          if (applyStyle(divStyle)) {
-            socket.emit("update-style", JSON.stringify(divStyle));
-          }
+          checkLeftmost = leftMost;
         }
-      }
-    });
+      });
+      return;
+    }
   } else {
-    console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
+    // console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
   }
 }
 
@@ -1247,7 +1497,7 @@ function changeFontSize(input) {
       }
     });
   } else {
-    console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
+    // console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
   }
 }
 
@@ -1286,7 +1536,7 @@ function makeSelectedDivsItalic() {
       }
     });
   } else {
-    console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
+    // console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
   }
 }
 
@@ -1312,7 +1562,7 @@ function handleColorChange(event) {
       }
     });
   } else {
-    console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
+    // console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
   }
 }
 
@@ -1338,13 +1588,12 @@ function handleBackGroundColorChange(event) {
       }
     });
   } else {
-    console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
+    // console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
   }
 }
 
 setInterval(() => {
   arrdivStyle = [];
-  console.log("Mảng đã arrdivStyle được xóa:");
 }, 30000);
 
 function controlPlusCHandling() {
@@ -1353,7 +1602,7 @@ function controlPlusCHandling() {
 }
 
 function controlPlusVHandling() {
-  console.log(arrContentForCtrlV);
+  // console.log(arrContentForCtrlV);
   simulateKeydownForArray();
 }
 
@@ -1410,7 +1659,7 @@ function deleteMultiHandling() {
       ? document.getElementById(selectedIds[selectedIds.length - 1])
       : null;
 
-  console.log(lastDiv);
+  // console.log(lastDiv);
 
   const selection = window.getSelection();
 
@@ -1427,18 +1676,28 @@ function getDivAbove(currentDiv) {
   const currentRect = currentDiv.getBoundingClientRect();
   const allDivs = document.querySelectorAll("#content div");
   let divAbove = null;
-  let closestDistance = Infinity;
+  let closestVerticalDistance = Infinity;
+  let closestHorizontalDistance = Infinity;
 
   allDivs.forEach((div) => {
-    if (div !== currentDiv) {
+    if (
+      div !== currentDiv &&
+      div.id !== "" &&
+      getComputedStyle(div).display !== "none"
+    ) {
       const rect = div.getBoundingClientRect();
 
       if (rect.bottom <= currentRect.top) {
-        const distance = currentRect.top - rect.bottom;
-        const distanceRight = Math.abs(currentRect.right - rect.right);
+        const verticalDistance = currentRect.top - rect.bottom;
+        const horizontalDistance = Math.abs(currentRect.left - rect.left);
 
-        if (distanceRight < closestDistance && distance == 0) {
-          closestDistance = distanceRight;
+        if (
+          verticalDistance < closestVerticalDistance ||
+          (verticalDistance === closestVerticalDistance &&
+            horizontalDistance < closestHorizontalDistance)
+        ) {
+          closestVerticalDistance = verticalDistance;
+          closestHorizontalDistance = horizontalDistance;
           divAbove = div;
         }
       }
@@ -1451,26 +1710,36 @@ function getDivAbove(currentDiv) {
 function getDivBelow(currentDiv) {
   const currentRect = currentDiv.getBoundingClientRect();
   const allDivs = document.querySelectorAll("#content div");
-  let divAbove = null;
-  let closestDistance = Infinity;
+  let divBelow = null;
+  let closestVerticalDistance = Infinity;
+  let closestHorizontalDistance = Infinity;
 
   allDivs.forEach((div) => {
-    if (div !== currentDiv) {
+    if (
+      div !== currentDiv &&
+      div.id !== "" &&
+      getComputedStyle(div).display !== "none"
+    ) {
       const rect = div.getBoundingClientRect();
 
       if (rect.top >= currentRect.bottom) {
-        const distance = currentRect.bottom - rect.top;
-        const distanceRight = Math.abs(currentRect.right - rect.right);
+        const verticalDistance = rect.top - currentRect.bottom;
+        const horizontalDistance = Math.abs(currentRect.left - rect.left);
 
-        if (distanceRight < closestDistance && distance == 0) {
-          closestDistance = distanceRight;
-          divAbove = div;
+        if (
+          verticalDistance < closestVerticalDistance ||
+          (verticalDistance === closestVerticalDistance &&
+            horizontalDistance < closestHorizontalDistance)
+        ) {
+          closestVerticalDistance = verticalDistance;
+          closestHorizontalDistance = horizontalDistance;
+          divBelow = div;
         }
       }
     }
   });
 
-  return divAbove;
+  return divBelow;
 }
 
 function applyStyle(divStyle) {
@@ -1513,11 +1782,152 @@ function checkConflict(element, divStyle) {
     return true;
   }
 }
+
+function findLeftMostInSameRow(targetId) {
+  const targetElement = document.getElementById(targetId);
+  if (!targetElement) {
+    // console.log(`Element with ID: ${targetId} not found.`);
+    return null;
+  }
+
+  const targetRect = targetElement.getBoundingClientRect();
+  const allDivs = document.querySelectorAll("div");
+  let leftMostElement = targetElement;
+  let minLeft = targetRect.left;
+
+  allDivs.forEach((element) => {
+    const rect = element.getBoundingClientRect();
+
+    if (Math.abs(rect.top - targetRect.top) < 1) {
+      if (rect.left < minLeft) {
+        minLeft = rect.left;
+        leftMostElement = element;
+      }
+    }
+  });
+  if (leftMostElement.style.display == "block") {
+    return leftMostElement.nextElementSibling;
+  }
+  return leftMostElement;
+}
+
+function checkAligned(targetId) {
+  const leftMostElement = findLeftMostInSameRow(targetId);
+
+  if (!leftMostElement) {
+    return null;
+  }
+
+  if (leftMostElement.style.textAlign == "right") {
+    return 1;
+  } else if (leftMostElement.style.textAlign == "center") {
+    return 0;
+  } else {
+    return -1;
+  }
+}
+
+function handleAlignedInput(currentDiv, insertedDiv, check, isDeleted = false) {
+  if (check == -1) {
+    return;
+  }
+  const leftMost = findLeftMostInSameRow(currentDiv.id);
+  // console.log("lef most ", leftMost);
+  let insertedDivWidth;
+  let align;
+  if (check == 1) {
+    insertedDivWidth = insertedDiv.getBoundingClientRect().width;
+    // console.log("xử lý căn lề phải");
+    align = "right";
+  } else if (check == 0) {
+    insertedDivWidth = insertedDiv.getBoundingClientRect().width / 2;
+    // console.log("xử lý căn lề giữa");
+    align = "center";
+  }
+
+  if (isDeleted) {
+    insertedDivWidth = -insertedDivWidth;
+  }
+  let marginLeftValue =
+    parseFloat(leftMost.style.marginLeft) - insertedDivWidth;
+  // console.log(parseFloat(leftMost.style.marginLeft), " and ", insertedDivWidth);
+  if (marginLeftValue <= 0) {
+    marginLeftValue = 0;
+  }
+  const divStyle = {
+    time: Date.now().toString(),
+    pri: pri,
+    id: leftMost.id,
+    styles: {
+      marginLeft: marginLeftValue + "px",
+      textAlign: align,
+    },
+  };
+  if (applyStyle(divStyle)) {
+    socket.emit("update-style", JSON.stringify(divStyle));
+  }
+}
+
+function calculateMarginLeftForRightAlign(divId) {
+  const content = document.getElementById("content");
+  const targetDiv = document.getElementById(divId);
+
+  if (content && targetDiv) {
+    const contentStyle = window.getComputedStyle(content);
+    const paddingLeft = parseFloat(contentStyle.paddingLeft);
+    const paddingRight = parseFloat(contentStyle.paddingRight);
+
+    const contentWidth = content.getBoundingClientRect().width;
+    const targetDivWidth = targetDiv.getBoundingClientRect().width;
+    const targetRect = targetDiv.getBoundingClientRect();
+
+    let totalWidthOfRightSiblings = 0;
+
+    const allDivs = Array.from(document.querySelectorAll("#content > div"));
+
+    const sameRowDivs = allDivs.filter((div) => {
+      const rect = div.getBoundingClientRect();
+      return Math.abs(rect.top - targetRect.top) < 1;
+    });
+
+    sameRowDivs.sort(
+      (a, b) => a.getBoundingClientRect().left - b.getBoundingClientRect().left
+    );
+
+    let foundTarget = false;
+    sameRowDivs.forEach((div) => {
+      const rect = div.getBoundingClientRect();
+      if (div === targetDiv) {
+        foundTarget = true;
+      } else if (foundTarget) {
+        totalWidthOfRightSiblings += rect.width;
+      }
+    });
+    totalWidthOfRightSiblings += 2;
+
+    const marginLeft =
+      contentWidth -
+      paddingLeft -
+      paddingRight -
+      targetDivWidth -
+      totalWidthOfRightSiblings;
+
+    return marginLeft;
+  } else {
+    // console.log(`Không tìm thấy #content hoặc #${divId}`);
+    return null;
+  }
+}
+
+function calculateMarginLeftForCenterAlign(divId) {
+  return calculateMarginLeftForRightAlign(divId) / 2;
+}
+
 onMounted(() => {
   socket.connect();
   socket.on("give-priority", (doUuTien) => {
     pri = doUuTien;
-    console.log(`độ ưu tiên là ${pri}`);
+    // console.log(`độ ưu tiên là ${pri}`);
   });
   socket.on("update-insert-one", (charToInsert) => {
     const kiTu = JSON.parse(charToInsert);
@@ -1540,59 +1950,18 @@ onMounted(() => {
   contentDiv.value.innerHTML = `
         <div id=""></div></div><div id="1:A">a</div><div id="2:B">b</div><div id="3:A">c</div><div id="4:A">d</div><br>
   `;
-  function getAllContentAndStyles() {
-    const contentDiv = document.getElementById("content");
-
-    if (!contentDiv) {
-      console.log("Không tìm thấy phần tử #content");
-      return [];
-    }
-
-    const divElements = contentDiv.querySelectorAll("div");
-
-    if (divElements.length === 0) {
-      console.log("Không có thẻ <div> con nào bên trong #content");
-      return [];
-    }
-
-    const contentAndStyles = Array.from(divElements).map((div) => {
-      return {
-        id: div.id,
-        content: div.textContent,
-        styles: div.getAttribute("style") || "",
-      };
-    });
-
-    return contentAndStyles;
-  }
-  console.log(getAllContentAndStyles());
 });
 
 onBeforeUnmount(() => {
   socket.disconnect();
 });
 </script>
+
 <template>
   <div class="container">
     <div class="container mt-3">
       <div class="toolbar p-3 bg-light border rounded">
-        <div
-          class="d-flex align-items-center mb-2"
-          style="height: 60px; width: 100%"
-        >
-          <!-- Logo bên trái -->
-          <img
-            src="../assets/logo.png"
-            alt="Logo"
-            style="height: 50px; margin-right: 10px"
-          />
-          <input
-            type="label"
-            class="form-control me-2"
-            placeholder="Document"
-            style="width: 200px"
-          />
-
+        <div class="d-flex justify-content-start align-items-center mb-3">
           <!-- File Dropdown -->
           <div class="dropdown me-2">
             <button
@@ -1624,58 +1993,6 @@ onBeforeUnmount(() => {
               @change="handleFileInput"
             />
           </div>
-
-          <!-- Format Dropdown -->
-          <div class="dropdown me-2">
-            <button
-              class="btn btn-outline-secondary dropdown-toggle"
-              type="button"
-              id="formatDropdown"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-              style="width: 90px; height: 35px"
-            >
-              Format
-            </button>
-            <ul class="dropdown-menu" aria-labelledby="formatDropdown">
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H1')"
-                  >Heading 1</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H2')"
-                  >Heading 2</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H3')"
-                  >Heading 3</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H4')"
-                  >Heading 4</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H5')"
-                  >Heading 5</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('H6')"
-                  >Heading 6</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" onclick="applyFormat('P')"
-                  >Paragraph</a
-                >
-              </li>
-            </ul>
-          </div>
-
           <!-- Font size Dropdown -->
           <div class="dropdown me-2">
             <button
@@ -1684,16 +2001,12 @@ onBeforeUnmount(() => {
               id="fontSizeDropdown"
               data-bs-toggle="dropdown"
               aria-expanded="false"
-              style="width: 100px; height: 35px"
             >
               Font size
             </button>
             <ul class="dropdown-menu" aria-labelledby="fontSizeDropdown">
               <li>
-                <a
-                  class="dropdown-item"
-                  href="#"
-                  onclick="changeFontSize('8pt')"
+                <a class="dropdown-item" href="#" @click="changeFontSize('8pt')"
                   >Extra small</a
                 >
               </li>
@@ -1701,7 +2014,7 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  onclick="changeFontSize('10pt')"
+                  @click="changeFontSize('10pt')"
                   >Small</a
                 >
               </li>
@@ -1709,7 +2022,7 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  onclick="changeFontSize('12pt')"
+                  @click="changeFontSize('12pt')"
                   >Regular</a
                 >
               </li>
@@ -1717,7 +2030,7 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  onclick="changeFontSize('14pt')"
+                  @click="changeFontSize('14pt')"
                   >Medium</a
                 >
               </li>
@@ -1725,7 +2038,7 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  onclick="changeFontSize('18pt')"
+                  @click="changeFontSize('18pt')"
                   >Large</a
                 >
               </li>
@@ -1733,7 +2046,7 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  onclick="changeFontSize('24pt')"
+                  @click="changeFontSize('24pt')"
                   >Extra Large</a
                 >
               </li>
@@ -1741,7 +2054,7 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  onclick="changeFontSize('32pt')"
+                  @click="changeFontSize('32pt')"
                   >Big</a
                 >
               </li>
@@ -1749,100 +2062,6 @@ onBeforeUnmount(() => {
           </div>
 
           <!-- Color Picker -->
-
-          <div class="d-flex align-items-center ms-auto" style="margin: 0">
-            <div class="d-flex align-items-center me-3" style="margin: 0">
-              <img
-                src="../assets/timkiemlg.png"
-                alt="Search Icon"
-                style="height: 20px; width: 20px; margin-right: 10px"
-              />
-              <input
-                type="text"
-                class="form-control"
-                placeholder="Looking for tools"
-                style="
-                  width: 200px;
-                  height: 40px;
-                  font-size: 15px;
-                  margin-right: 20px;
-                "
-              />
-
-              <button
-                class="btn btn-dark dropdown-toggle"
-                type="button"
-                id="shareDropdown"
-                data-bs-toggle="dropdown"
-                aria-expanded="false"
-                style="margin: 0"
-              >
-                Share
-              </button>
-              <ul
-                class="dropdown-menu dropdown-menu-end"
-                aria-labelledby="shareDropdown"
-                style="margin: 0"
-              >
-                <li>
-                  <a
-                    class="dropdown-item"
-                    href="#"
-                    onclick="copyRoomID()"
-                    style="margin: 0"
-                    >Sao chép ID Room</a
-                  >
-                </li>
-              </ul>
-            </div>
-
-            <!-- Avatar Image Right Next to "Chia Sẻ" Button -->
-            <img
-              src="../assets/gg.png"
-              alt="Avatar"
-              style="height: 35px; width: 35px; border-radius: 50%; margin: 0"
-              onclick="avatarClicked()"
-            />
-          </div>
-        </div>
-
-        <div style="width: 100%">
-          <hr
-            style="border: none; border-top: 2px solid #000; margin-top: 10px"
-          />
-        </div>
-
-        <div class="d-flex justify-content-left align-items-center">
-          <button
-            class="btn btn-outline-secondary"
-            style="margin-right: 10px"
-            @click="makeSelectedDivsBold"
-          >
-            <i class="fas fa-bold"></i>
-          </button>
-          <button
-            class="btn btn-outline-secondary"
-            style="margin-right: 10px"
-            @click="makeSelectedDivsItalic"
-          >
-            <i class="fas fa-italic"></i>
-          </button>
-          <button class="btn btn-outline-secondary" style="margin-right: 10px">
-            <i class="fas fa-underline"></i>
-          </button>
-          <button class="btn btn-outline-secondary" style="margin-right: 10px">
-            <i class="fas fa-strikethrough"></i>
-          </button>
-          <button class="btn btn-outline-secondary" style="margin-right: 10px">
-            <i class="fas fa-align-left"></i>
-          </button>
-          <button class="btn btn-outline-secondary" style="margin-right: 10px">
-            <i class="fas fa-align-center"></i>
-          </button>
-          <button class="btn btn-outline-secondary" style="margin-right: 10px">
-            <i class="fas fa-align-right"></i>
-          </button>
-
           <div
             class="d-flex align-items-center border border-secondary px-2 py-1 rounded"
           >
@@ -1857,18 +2076,15 @@ onBeforeUnmount(() => {
               @input="handleColorChange"
               value="#000000"
               title="Choose text color"
-              style="height: 28px; width: 25px"
+              style="height: 22px; width: 24px"
             />
           </div>
 
-          <!-- Background Color Picker -->
           <div
             class="d-flex align-items-center border border-secondary px-2 py-1 rounded ms-2"
           >
-            <!-- Label for Color Picker -->
             <label for="textColorPicker" class="me-2">Background</label>
 
-            <!-- Color Picker -->
             <input
               type="color"
               id="textColorPicker"
@@ -1876,17 +2092,56 @@ onBeforeUnmount(() => {
               @input="handleBackGroundColorChange"
               value="#000000"
               title="Choose text color"
-              style="height: 28px; width: 28px"
+              style="height: 22px; width: 24px"
             />
           </div>
         </div>
+
+        <div class="d-flex justify-content-start align-items-center">
+          <button
+            class="btn btn-outline-secondary me-1"
+            @click="makeSelectedDivsBold"
+          >
+            <i class="fas fa-bold"></i>
+          </button>
+          <button
+            class="btn btn-outline-secondary me-1"
+            @click="makeSelectedDivsItalic"
+          >
+            <i class="fas fa-italic"></i>
+          </button>
+          <button
+            class="btn btn-outline-secondary me-1"
+            @click="makeSelectedDivsUnderLined"
+          >
+            <i class="fas fa-underline"></i>
+          </button>
+          <button
+            class="btn btn-outline-secondary me-1"
+            @click="makeSelectedDivsStrikethrough"
+          >
+            <i class="fas fa-strikethrough"></i>
+          </button>
+          <button
+            class="btn btn-outline-secondary me-1"
+            @click="makeSelectedDivsAlign('left')"
+          >
+            <i class="fas fa-align-left"></i>
+          </button>
+          <button
+            class="btn btn-outline-secondary me-1"
+            @click="makeSelectedDivsAlign('center')"
+          >
+            <i class="fas fa-align-center"></i>
+          </button>
+          <button
+            class="btn btn-outline-secondary me-1"
+            @click="makeSelectedDivsAlign('right')"
+          >
+            <i class="fas fa-align-right"></i>
+          </button>
+        </div>
       </div>
-      <div style="width: 100%">
-        <hr
-          style="border: none; border-top: 2px solid #000; margin-top: 20px"
-        />
-      </div>
-      <!-- Editable c`ontent area -->
 
       <div
         id="content"
@@ -1906,7 +2161,7 @@ onBeforeUnmount(() => {
   margin: 0;
 }
 :deep(#content) {
-  width: 50%;
+  /* width: 50%; */
   height: 50%;
   margin: 0 auto;
   border: 2px solid #ccc;

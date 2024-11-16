@@ -9,6 +9,44 @@ import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
 const props = defineProps(["id", "ownerIdDocument"]);
 let active = false;
+let documentDetail = ref("");
+
+const fetchDocumentInfor = async () => {
+  try {
+    const result = await axios.get(
+      `${import.meta.env.VITE_SERVER_URL}/documents/detail/${props.id}`,
+      {
+        withCredentials: true,
+      }
+    );
+    documentDetail.value = result.data.document;
+    console.log("Thông tin tài liệu:", documentDetail.value);
+  } catch (error) {
+    console.error("Lỗi khi lấy thông tin tài liệu:", error);
+  }
+};
+
+const copyRoomID = () => {
+  if (documentDetail.value) {
+    navigator.clipboard
+      .writeText(documentDetail.value.shareCode)
+      .then(() => {
+        console.log(
+          "Đã sao chép vào bộ nhớ tạm:",
+          documentDetail.value.shareCode
+        );
+      })
+      .catch((err) => {
+        console.error("Lỗi khi sao chép vào bộ nhớ tạm:", err);
+      });
+  } else {
+    console.warn("Không có nội dung để sao chép.");
+  }
+};
+onMounted(() => {
+  fetchDocumentInfor();
+  copyRoomID();
+});
 const openFile = () => {
   document.getElementById("fileInput").click();
 };
@@ -53,11 +91,12 @@ const handleFileInput = async (event) => {
 
         const xmlContent = zip.file("word/document.xml").asText();
         const { htmlContent, charDataArray } = convertDocxXmlToHtml(xmlContent);
-
+        console.log(">>>>>>>>>>>>>>>>>: ", charDataArray);
         contentDiv.innerHTML = htmlContent;
 
         charDataArray.forEach((charData) => {
           socket.emit("insert-one", JSON.stringify(charData));
+          socket.emit("update-style", JSON.stringify(charData));
         });
       } catch (error) {
         console.error("Error reading DOCX file:", error);
@@ -87,7 +126,6 @@ const handleFileInput = async (event) => {
     });
   }
 };
-
 function convertDocxXmlToHtml(xmlContent) {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(xmlContent, "application/xml");
@@ -113,10 +151,11 @@ function convertDocxXmlToHtml(xmlContent) {
         }
 
         const colorNode = r.getElementsByTagName("w:color")[0];
-        let style = "";
+        let styles = {};
+
         if (colorNode) {
           const colorValue = colorNode.getAttribute("w:val");
-          style += `color: #${colorValue}; `;
+          styles.color = "#" + colorValue;
         }
 
         const boldNode = r.getElementsByTagName("w:b")[0];
@@ -127,20 +166,28 @@ function convertDocxXmlToHtml(xmlContent) {
           italicNode && italicNode.getAttribute("w:val") !== "false";
 
         if (isBold) {
-          style += "font-weight: bold; ";
+          styles.fontWeight = "bold";
         }
         if (isItalic) {
-          style += "font-style: italic; ";
+          styles.fontStyle = "italic";
         }
+
+        styles.display = "inline"; // Inline display for each character
 
         for (const char of textContent) {
           const charId = previousId ? spawnID(previousId, null) : "1:A";
-          const charDiv = `<div id="${charId}" style="${style} display: inline;">${char}</div>`;
+
+          // Convert styles object to inline style string
+          const styleString = Object.entries(styles)
+            .map(([key, value]) => `${key}: ${value};`)
+            .join(" ");
+
+          const charDiv = `<div id="${charId}" style="${styleString}">${char}</div>`;
 
           const charData = {
             id: charId,
             content: char,
-            style: style + "display: inline;",
+            styles: { ...styles }, // Store as object
           };
           charDataArray.push(charData);
 
@@ -157,7 +204,7 @@ function convertDocxXmlToHtml(xmlContent) {
       const lineBreakData = {
         id: lineBreakId,
         content: "&nbsp;",
-        style: "display: block;",
+        styles: { display: "block" },
       };
       charDataArray.push(lineBreakData);
 
@@ -170,7 +217,7 @@ function convertDocxXmlToHtml(xmlContent) {
       const newLineData = {
         id: newLineId,
         content: "",
-        style: "display: block;",
+        styles: { display: "block" },
       };
       charDataArray.push(newLineData);
 
@@ -235,7 +282,7 @@ const exportToDocx = async () => {
     });
 
     const blob = await Packer.toBlob(doc);
-    saveAs(blob, "content_structure.docx");
+    saveAs(blob, "docsync.docx");
   } catch (error) {
     console.error("Error exporting document:", error);
   }
@@ -1189,42 +1236,71 @@ function makeSelectedDivsStrikethrough() {
   }
 }
 
-function makeSelectedDivsAlign(input) {
+// function makeSelectedDivsAlign(input) {
+//   const selectedDivIds = getSelectedDivIds();
+//   if (selectedDivIds.length > 0) {
+//     selectedDivIds.forEach((id) => {
+//       const div = document.getElementById(id);
+//       if (div) {
+//         if (div.style.textAlign === input) {
+//           const divStyle = {
+//             time: Date.now().toString(),
+//             pri: pri,
+//             id: div.id,
+//             styles: {
+//               textAlign: "",
+//             },
+//           };
+//           if (applyStyle(divStyle)) {
+//             socket.emit("update-style", JSON.stringify(divStyle));
+//           }
+//         } else {
+//           const divStyle = {
+//             time: Date.now().toString(),
+//             pri: pri,
+//             id: div.id,
+//             styles: {
+//               textAlign: input,
+//             },
+//           };
+//           if (applyStyle(divStyle)) {
+//             socket.emit("update-style", JSON.stringify(divStyle));
+//           }
+//         }
+//       }
+//     });
+//   } else {
+//     console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
+//   }
+// }
+function makeSelectedDivsAlignCenter() {
+  const contentDiv = document.getElementById("content");
   const selectedDivIds = getSelectedDivIds();
-  if (selectedDivIds.length > 0) {
-    selectedDivIds.forEach((id) => {
-      const div = document.getElementById(id);
-      if (div) {
-        if (div.style.textAlign === input) {
-          const divStyle = {
-            time: Date.now().toString(),
-            pri: pri,
-            id: div.id,
-            styles: {
-              textAlign: "",
-            },
-          };
-          if (applyStyle(divStyle)) {
-            socket.emit("update-style", JSON.stringify(divStyle));
-          }
-        } else {
-          const divStyle = {
-            time: Date.now().toString(),
-            pri: pri,
-            id: div.id,
-            styles: {
-              textAlign: input,
-            },
-          };
-          if (applyStyle(divStyle)) {
-            socket.emit("update-style", JSON.stringify(divStyle));
-          }
-        }
-      }
-    });
-  } else {
-    console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
+
+  if (selectedDivIds.length === 0) {
+    console.log("Không có thẻ <div> nào được chọn.");
+    return;
   }
+
+  // Kiểm tra trạng thái hiện tại của #content để xác định căn giữa hay căn trái
+  const isCurrentlyCentered = contentDiv.style.textAlign === "center";
+  const newAlignment = isCurrentlyCentered ? "left" : "center";
+
+  // Đặt `text-align` cho #content để căn giữa hoặc căn trái
+  contentDiv.style.textAlign = newAlignment;
+
+  // Áp dụng căn giữa hoặc căn trái cho từng thẻ <div> con được chọn
+  selectedDivIds.forEach((id) => {
+    const div = document.getElementById(id);
+    if (div) {
+      if (newAlignment === "center") {
+        div.style.display = "inline-block"; // Đặt inline-block để các thẻ nằm trên cùng một dòng
+      } else {
+        div.style.display = ""; // Đặt lại display về mặc định để trở về căn trái
+      }
+      div.style.textAlign = newAlignment;
+    }
+  });
 }
 
 function changeFontSize(input) {
@@ -1243,6 +1319,47 @@ function changeFontSize(input) {
         };
         if (applyStyle(divStyle)) {
           socket.emit("update-style", JSON.stringify(divStyle));
+        }
+      }
+    });
+  } else {
+    console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
+  }
+}
+
+function makeSelectedDivsUnderline() {
+  const selectedDivIds = getSelectedDivIds();
+
+  if (selectedDivIds.length > 0) {
+    selectedDivIds.forEach((id) => {
+      const div = document.getElementById(id);
+      if (div) {
+        if (div.style.textDecoration === "underline") {
+          // Nếu đã gạch chân, thì bỏ gạch chân
+          const divStyle = {
+            time: Date.now().toString(),
+            pri: pri,
+            id: div.id,
+            styles: {
+              textDecoration: "",
+            },
+          };
+          if (applyStyle(divStyle)) {
+            socket.emit("update-style", JSON.stringify(divStyle));
+          }
+        } else {
+          // Nếu chưa gạch chân, thì gạch chân
+          const divStyle = {
+            time: Date.now().toString(),
+            pri: pri,
+            id: div.id,
+            styles: {
+              textDecoration: "underline",
+            },
+          };
+          if (applyStyle(divStyle)) {
+            socket.emit("update-style", JSON.stringify(divStyle));
+          }
         }
       }
     });
@@ -1540,6 +1657,8 @@ onMounted(() => {
   contentDiv.value.innerHTML = `
         <div id=""></div></div><div id="1:A">a</div><div id="2:B">b</div><div id="3:A">c</div><div id="4:A">d</div><br>
   `;
+
+  //get div
   function getAllContentAndStyles() {
     const contentDiv = document.getElementById("content");
 
@@ -1565,19 +1684,36 @@ onMounted(() => {
 
     return contentAndStyles;
   }
-  console.log(getAllContentAndStyles());
-});
+  fetchDocumentInfor();
 
+  // console.log(getAllContentAndStyles());
+});
 onBeforeUnmount(() => {
   socket.disconnect();
 });
 </script>
-
 <template>
   <div class="container">
     <div class="container mt-3">
       <div class="toolbar p-3 bg-light border rounded">
-        <div class="d-flex justify-content-start align-items-center mb-3">
+        <div
+          class="d-flex align-items-center mb-2"
+          style="height: 60px; width: 100%"
+        >
+          <!-- Logo bên trái -->
+          <img
+            src="../assets/logo.png"
+            alt="Logo"
+            style="height: 50px; margin-right: 10px"
+          />
+          <input
+            type="label"
+            class="form-control me-2"
+            :placeholder="documentDetail.documentTitle || 'Document'"
+            style="width: 200px"
+          />
+
+          <!-- File Dropdown -->
           <div class="dropdown me-2">
             <button
               class="btn btn-outline-secondary dropdown-toggle"
@@ -1585,6 +1721,7 @@ onBeforeUnmount(() => {
               id="fileDropdown"
               data-bs-toggle="dropdown"
               aria-expanded="false"
+              style="width: 70px; height: 35px"
             >
               File
             </button>
@@ -1608,6 +1745,58 @@ onBeforeUnmount(() => {
             />
           </div>
 
+          <!-- Format Dropdown -->
+          <div class="dropdown me-2">
+            <button
+              class="btn btn-outline-secondary dropdown-toggle"
+              type="button"
+              id="formatDropdown"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+              style="width: 90px; height: 35px"
+            >
+              Format
+            </button>
+            <ul class="dropdown-menu" aria-labelledby="formatDropdown">
+              <li>
+                <a class="dropdown-item" href="#" onclick="applyFormat('H1')"
+                  >Heading 1</a
+                >
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" onclick="applyFormat('H2')"
+                  >Heading 2</a
+                >
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" onclick="applyFormat('H3')"
+                  >Heading 3</a
+                >
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" onclick="applyFormat('H4')"
+                  >Heading 4</a
+                >
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" onclick="applyFormat('H5')"
+                  >Heading 5</a
+                >
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" onclick="applyFormat('H6')"
+                  >Heading 6</a
+                >
+              </li>
+              <li>
+                <a class="dropdown-item" href="#" onclick="applyFormat('P')"
+                  >Paragraph</a
+                >
+              </li>
+            </ul>
+          </div>
+
+          <!-- Font size Dropdown -->
           <div class="dropdown me-2">
             <button
               class="btn btn-outline-secondary dropdown-toggle"
@@ -1615,12 +1804,16 @@ onBeforeUnmount(() => {
               id="fontSizeDropdown"
               data-bs-toggle="dropdown"
               aria-expanded="false"
+              style="width: 100px; height: 35px"
             >
               Font size
             </button>
             <ul class="dropdown-menu" aria-labelledby="fontSizeDropdown">
               <li>
-                <a class="dropdown-item" href="#" @click="changeFontSize('8pt')"
+                <a
+                  class="dropdown-item"
+                  href="#"
+                  onclick="changeFontSize('8pt')"
                   >Extra small</a
                 >
               </li>
@@ -1628,7 +1821,7 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  @click="changeFontSize('10pt')"
+                  onclick="changeFontSize('10pt')"
                   >Small</a
                 >
               </li>
@@ -1636,7 +1829,7 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  @click="changeFontSize('12pt')"
+                  onclick="changeFontSize('12pt')"
                   >Regular</a
                 >
               </li>
@@ -1644,7 +1837,7 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  @click="changeFontSize('14pt')"
+                  onclick="changeFontSize('14pt')"
                   >Medium</a
                 >
               </li>
@@ -1652,7 +1845,7 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  @click="changeFontSize('18pt')"
+                  onclick="changeFontSize('18pt')"
                   >Large</a
                 >
               </li>
@@ -1660,7 +1853,7 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  @click="changeFontSize('24pt')"
+                  onclick="changeFontSize('24pt')"
                   >Extra Large</a
                 >
               </li>
@@ -1668,18 +1861,123 @@ onBeforeUnmount(() => {
                 <a
                   class="dropdown-item"
                   href="#"
-                  @click="changeFontSize('32pt')"
+                  onclick="changeFontSize('32pt')"
                   >Big</a
                 >
               </li>
             </ul>
           </div>
 
+          <!-- Color Picker -->
+
+          <div class="d-flex align-items-center ms-auto" style="margin: 0">
+            <div class="d-flex align-items-center me-3" style="margin: 0">
+              <img
+                src="../assets/timkiemlg.png"
+                alt="Search Icon"
+                style="height: 20px; width: 20px; margin-right: 10px"
+              />
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Looking for tools"
+                style="
+                  width: 200px;
+                  height: 40px;
+                  font-size: 15px;
+                  margin-right: 20px;
+                "
+              />
+
+              <button
+                class="btn btn-dark dropdown-toggle"
+                type="button"
+                id="shareDropdown"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                style="margin: 0"
+              >
+                Share
+              </button>
+              <ul
+                class="dropdown-menu dropdown-menu-end"
+                aria-labelledby="shareDropdown"
+                style="margin: 0"
+              >
+                <li>
+                  <a
+                    class="dropdown-item"
+                    href="#"
+                    @click="copyRoomID()"
+                    style="margin: 0"
+                    >Sao chép ID Room</a
+                  >
+                </li>
+              </ul>
+            </div>
+
+            <!-- Avatar Image Right Next to "Chia Sẻ" Button -->
+            <img
+              src="../assets/gg.png"
+              alt="Avatar"
+              style="height: 35px; width: 35px; border-radius: 50%; margin: 0"
+              onclick="avatarClicked()"
+            />
+          </div>
+        </div>
+
+        <div style="width: 100%">
+          <hr
+            style="border: none; border-top: 2px solid #000; margin-top: 10px"
+          />
+        </div>
+
+        <div class="d-flex justify-content-left align-items-center">
+          <button
+            class="btn btn-outline-secondary"
+            style="margin-right: 10px"
+            @click="makeSelectedDivsBold"
+          >
+            <i class="fas fa-bold"></i>
+          </button>
+          <button
+            class="btn btn-outline-secondary"
+            style="margin-right: 10px"
+            @click="makeSelectedDivsItalic"
+          >
+            <i class="fas fa-italic"></i>
+          </button>
+          <button
+            @click="makeSelectedDivsUnderline"
+            class="btn btn-outline-secondary"
+            style="margin-right: 10px"
+          >
+            <i class="fas fa-underline"></i>
+          </button>
+          <button class="btn btn-outline-secondary" style="margin-right: 10px">
+            <i class="fas fa-strikethrough"></i>
+          </button>
+          <button class="btn btn-outline-secondary" style="margin-right: 10px">
+            <i class="fas fa-align-left"></i>
+          </button>
+          <button
+            @click="makeSelectedDivsAlignCenter"
+            class="btn btn-outline-secondary"
+            style="margin-right: 10px"
+          >
+            <i class="fas fa-align-center"></i>
+          </button>
+          <button class="btn btn-outline-secondary" style="margin-right: 10px">
+            <i class="fas fa-align-right"></i>
+          </button>
+
           <div
             class="d-flex align-items-center border border-secondary px-2 py-1 rounded"
           >
+            <!-- Label for Color Picker -->
             <label for="textColorPicker" class="me-2">Color</label>
 
+            <!-- Color Picker -->
             <input
               type="color"
               id="textColorPicker"
@@ -1687,15 +1985,18 @@ onBeforeUnmount(() => {
               @input="handleColorChange"
               value="#000000"
               title="Choose text color"
-              style="height: 22px; width: 24px"
+              style="height: 28px; width: 25px"
             />
           </div>
 
+          <!-- Background Color Picker -->
           <div
             class="d-flex align-items-center border border-secondary px-2 py-1 rounded ms-2"
           >
+            <!-- Label for Color Picker -->
             <label for="textColorPicker" class="me-2">Background</label>
 
+            <!-- Color Picker -->
             <input
               type="color"
               id="textColorPicker"
@@ -1703,56 +2004,17 @@ onBeforeUnmount(() => {
               @input="handleBackGroundColorChange"
               value="#000000"
               title="Choose text color"
-              style="height: 22px; width: 24px"
+              style="height: 28px; width: 28px"
             />
           </div>
         </div>
-
-        <div class="d-flex justify-content-start align-items-center">
-          <button
-            class="btn btn-outline-secondary me-1"
-            @click="makeSelectedDivsBold"
-          >
-            <i class="fas fa-bold"></i>
-          </button>
-          <button
-            class="btn btn-outline-secondary me-1"
-            @click="makeSelectedDivsItalic"
-          >
-            <i class="fas fa-italic"></i>
-          </button>
-          <button
-            class="btn btn-outline-secondary me-1"
-            @click="makeSelectedDivsUnderLined"
-          >
-            <i class="fas fa-underline"></i>
-          </button>
-          <button
-            class="btn btn-outline-secondary me-1"
-            @click="makeSelectedDivsStrikethrough"
-          >
-            <i class="fas fa-strikethrough"></i>
-          </button>
-          <button
-            class="btn btn-outline-secondary me-1"
-            @click="makeSelectedDivsAlign('left')"
-          >
-            <i class="fas fa-align-left"></i>
-          </button>
-          <button
-            class="btn btn-outline-secondary me-1"
-            @click="makeSelectedDivsAlign('center')"
-          >
-            <i class="fas fa-align-center"></i>
-          </button>
-          <button
-            class="btn btn-outline-secondary me-1"
-            @click="makeSelectedDivsAlign('right')"
-          >
-            <i class="fas fa-align-right"></i>
-          </button>
-        </div>
       </div>
+      <div style="width: 100%">
+        <hr
+          style="border: none; border-top: 2px solid #000; margin-top: 20px"
+        />
+      </div>
+      <!-- Editable c`ontent area -->
 
       <div
         id="content"
@@ -1771,6 +2033,7 @@ onBeforeUnmount(() => {
   display: inline-block;
   margin: 0;
 }
+
 :deep(#content) {
   width: 50%;
   height: 50%;

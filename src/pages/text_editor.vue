@@ -3,7 +3,13 @@ import { ref, onMounted, onBeforeUnmount } from "vue";
 import axios from "axios";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
-import { Document, Packer, Paragraph, TextRun } from "docx";
+import {
+  AlignmentAttributes,
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+} from "docx";
 import { saveAs } from "file-saver";
 import { useRouter } from "vue-router";
 import { socket } from "../socket";
@@ -43,20 +49,27 @@ onMounted(() => {
 const openFile = () => {
   document.getElementById("fileInput").click();
 };
-
+function parseStyleString(styleString) {
+  const styles = {};
+  styleString.split(";").forEach((style) => {
+    if (style.trim()) {
+      const [key, value] = style.split(":");
+      styles[key.trim()] = value.trim();
+    }
+  });
+  return styles;
+}
 const handleFileInput = async (event) => {
   const file = event.target.files[0];
   if (file) {
     const contentDiv = document.getElementById("content");
 
+    // Clear current content and emit delete events for existing div elements
     const divElements = contentDiv.querySelectorAll("div");
     divElements.forEach((div) => {
-      const charData = {
-        id: div.id,
-      };
+      const charData = { id: div.id };
       socket.emit("delete-one", JSON.stringify(charData));
     });
-
     contentDiv.innerHTML = "";
 
     const reader = new FileReader();
@@ -72,10 +85,19 @@ const handleFileInput = async (event) => {
 
         const xmlContent = zip.file("word/document.xml").asText();
         const { htmlContent, charDataArray } = convertDocxXmlToHtml(xmlContent);
-        // console.log(">>>>>>>>>>>>>>>>>: ", charDataArray);
+
+        // Set the converted HTML content
         contentDiv.innerHTML = htmlContent;
 
+        // Emit events to insert characters and update styles
         charDataArray.forEach((charData) => {
+          const characterToAvoid = "&nbsp;";
+          if (charData.content.includes(characterToAvoid)) {
+            return; // Continue to the next iteration
+          }
+          const styles = parseStyleString(charData.style);
+          charData.styles = styles;
+          delete charData.style;
           socket.emit("insert-one", JSON.stringify(charData));
           socket.emit("update-style", JSON.stringify(charData));
         });
@@ -86,6 +108,7 @@ const handleFileInput = async (event) => {
     reader.readAsArrayBuffer(file);
   }
 
+  // Initialize socket listeners if not already initialized
   if (!socketListenersInitialized) {
     socketListenersInitialized = true;
 
@@ -107,6 +130,85 @@ const handleFileInput = async (event) => {
     });
   }
 };
+function makeSelectedDivsAlign(input, haha = "") {
+  const selectedDivIds =
+    getSelectedDivIds().length > 0 ? getSelectedDivIds() : [haha.id];
+
+  let checkLeftmost;
+  console.log("????????????????: ", selectedDivIds);
+  if (input === "center") {
+    selectedDivIds.forEach((divId) => {
+      const leftMost = findLeftMostInSameRow(divId) || haha;
+      console.log("leftMost: ", leftMost);
+      if (checkLeftmost !== leftMost) {
+        const marginLeftValue = calculateMarginLeftForCenterAlign(
+          leftMost.id,
+          haha
+        );
+        console.log("KQ NEF: ", marginLeftValue);
+        const divStyle = {
+          time: Date.now().toString(),
+          pri: pri,
+          id: leftMost.id,
+          styles: {
+            marginLeft: marginLeftValue + "px",
+            textAlign: "center",
+          },
+        };
+        if (applyStyle(divStyle)) {
+          socket.emit("update-style", JSON.stringify(divStyle));
+        }
+        checkLeftmost = leftMost;
+      }
+    });
+    return;
+  } else if (input == "right") {
+    selectedDivIds.forEach((divId) => {
+      const leftMost = findLeftMostInSameRow(divId) || haha;
+      if (checkLeftmost != leftMost) {
+        const marginLeftValue = calculateMarginLeftForRightAlign(
+          leftMost.id,
+          haha
+        );
+        const divStyle = {
+          time: Date.now().toString(),
+          pri: pri,
+          id: leftMost.id,
+          styles: {
+            marginLeft: marginLeftValue + "px",
+            textAlign: "right",
+          },
+        };
+        if (applyStyle(divStyle)) {
+          socket.emit("update-style", JSON.stringify(divStyle));
+        }
+        checkLeftmost = leftMost;
+      }
+    });
+    return;
+  } else if (input == "left") {
+    selectedDivIds.forEach((divId) => {
+      const leftMost = findLeftMostInSameRow(divId) || haha;
+      if (checkLeftmost != leftMost) {
+        const marginLeftValue = 0;
+        const divStyle = {
+          time: Date.now().toString(),
+          pri: pri,
+          id: leftMost.id,
+          styles: {
+            marginLeft: "",
+            textAlign: "",
+          },
+        };
+        if (applyStyle(divStyle)) {
+          socket.emit("update-style", JSON.stringify(divStyle));
+        }
+        checkLeftmost = leftMost;
+      }
+    });
+    return;
+  }
+}
 function convertDocxXmlToHtml(xmlContent) {
   const parser = new DOMParser();
   const xmlDoc = parser.parseFromString(xmlContent, "application/xml");
@@ -119,8 +221,22 @@ function convertDocxXmlToHtml(xmlContent) {
   for (const p of paragraphs) {
     let paragraphHtml = "";
     const runs = p.getElementsByTagName("w:r");
-
     let isParagraphEmpty = true;
+    let paragraphAlignment = "left"; // Default alignment
+
+    // Get alignment from paragraph properties
+    const paragraphProperties = p.getElementsByTagName("w:pPr")[0];
+    if (paragraphProperties) {
+      const alignmentNode = paragraphProperties.getElementsByTagName("w:jc")[0];
+      if (alignmentNode) {
+        const alignmentValue = alignmentNode.getAttribute("w:val");
+        if (alignmentValue) {
+          paragraphAlignment = convertAlignment(alignmentValue);
+        }
+      }
+    }
+
+    let charactersHtml = ""; // To hold the HTML for all characters
 
     for (const r of runs) {
       const texts = r.getElementsByTagName("w:t");
@@ -131,30 +247,51 @@ function convertDocxXmlToHtml(xmlContent) {
           isParagraphEmpty = false;
         }
 
-        const colorNode = r.getElementsByTagName("w:color")[0];
+        // Extract styling information
         let styles = {};
 
+        // Handle color
+        const colorNode = r.getElementsByTagName("w:color")[0];
         if (colorNode) {
           const colorValue = colorNode.getAttribute("w:val");
-          styles.color = "#" + colorValue;
+          if (colorValue && colorValue !== "auto") {
+            styles["color"] = `#${colorValue}`;
+          }
         }
 
+        // Handle background color (highlight)
+        const bg = r.getElementsByTagName("w:shd")[0];
+        if (bg) {
+          const bgValue = bg.getAttribute("w:fill");
+          if (bgValue && bgValue !== "auto") {
+            styles["background-color"] = `#${bgValue}`;
+          }
+        }
+
+        // Handle bold, italic, and underline
         const boldNode = r.getElementsByTagName("w:b")[0];
         const italicNode = r.getElementsByTagName("w:i")[0];
+        const underlineNode = r.getElementsByTagName("w:u")[0];
 
         const isBold = boldNode && boldNode.getAttribute("w:val") !== "false";
         const isItalic =
           italicNode && italicNode.getAttribute("w:val") !== "false";
+        const isUnderline =
+          underlineNode && underlineNode.getAttribute("w:val") !== "false";
 
         if (isBold) {
-          styles.fontWeight = "bold";
+          styles["font-weight"] = "bold";
         }
         if (isItalic) {
-          styles.fontStyle = "italic";
+          styles["font-style"] = "italic";
+        }
+        if (isUnderline) {
+          styles["text-decoration"] = "underline";
         }
 
-        styles.display = "inline";
+        styles["display"] = "inline";
 
+        // Create divs for each character
         for (const char of textContent) {
           const charId = previousId ? spawnID(previousId, null) : "1:A";
 
@@ -167,40 +304,67 @@ function convertDocxXmlToHtml(xmlContent) {
           const charData = {
             id: charId,
             content: char,
-            styles: { ...styles },
+            style: styleString,
           };
           charDataArray.push(charData);
 
-          paragraphHtml += charDiv;
+          charactersHtml += charDiv;
           previousId = charId;
         }
       }
     }
 
+    // Parse all characters' HTML
+    const parsedHtml = parser.parseFromString(charactersHtml, "text/html");
+    const parsedElements = Array.from(parsedHtml.body.children);
+
+    if (parsedElements.length > 0) {
+      const containerWidth = document.getElementById("content").clientWidth;
+      let totalWidth = parsedElements.reduce((acc, el) => {
+        return acc + el.offsetWidth;
+      }, 0);
+
+      let marginLeft = 0;
+
+      if (paragraphAlignment === "center") {
+        marginLeft = (containerWidth - totalWidth) / 2;
+      } else if (paragraphAlignment === "right") {
+        marginLeft = containerWidth - totalWidth;
+      } else if (paragraphAlignment === "left") {
+        marginLeft = 0;
+      }
+
+      // Apply margin-left to the entire line
+      parsedElements.forEach((el, index) => {
+        if (index === 0) {
+          el.style.marginLeft = `${Math.max(0, marginLeft)}px`;
+        }
+      });
+
+      paragraphHtml += parsedElements
+        .map((element) => element.outerHTML)
+        .join("");
+    }
+
+    // Handle empty paragraphs
     if (isParagraphEmpty) {
       const lineBreakId = previousId ? spawnID(previousId, null) : "1:A";
-      const lineBreakDiv = `<div id="${lineBreakId}" style="display: block;">&nbsp;</div>`;
-
       const lineBreakData = {
         id: lineBreakId,
-        content: "&nbsp;",
-        styles: { display: "block" },
+        content: "&nbsp;", // Space for line break
+        style: "display: block;",
       };
       charDataArray.push(lineBreakData);
-
-      paragraphHtml += lineBreakDiv;
       previousId = lineBreakId;
     } else {
       const newLineId = previousId ? spawnID(previousId, null) : "1:A";
       const newLineDiv = `<div id="${newLineId}" style="display: block;"></div>`;
-
       const newLineData = {
         id: newLineId,
         content: "",
-        styles: { display: "block" },
+        style: "display: block;",
       };
       charDataArray.push(newLineData);
-
       paragraphHtml += newLineDiv;
       previousId = newLineId;
     }
@@ -208,8 +372,22 @@ function convertDocxXmlToHtml(xmlContent) {
     htmlContent += paragraphHtml;
   }
 
+  document.getElementById("content").innerHTML = htmlContent;
+
   return { htmlContent, charDataArray };
 }
+
+// Helper function to convert DOCX alignment values to CSS alignment
+function convertAlignment(value) {
+  const alignmentMap = {
+    left: "left",
+    right: "right",
+    center: "center",
+    justify: "justify",
+  };
+  return alignmentMap[value] || "left";
+}
+
 const exportToDocx = async () => {
   try {
     const contentElement = document.getElementById("content");
@@ -332,7 +510,6 @@ const rgbToHex = (rgb) => {
 };
 
 const props = defineProps(["id", "ownerIdDocument"]);
-let active = false;
 
 const showCode = ref(null);
 const contentDiv = ref(null);
@@ -1402,81 +1579,6 @@ function makeSelectedDivsStrikethrough() {
   }
 }
 
-function makeSelectedDivsAlign(input) {
-  const selectedDivIds = getSelectedDivIds();
-  if (selectedDivIds.length > 0) {
-    let checkLeftmost;
-    if (input == "center") {
-      selectedDivIds.forEach((divId) => {
-        const leftMost = findLeftMostInSameRow(divId);
-        if (checkLeftmost != leftMost) {
-          const marginLeftValue = calculateMarginLeftForCenterAlign(
-            leftMost.id
-          );
-          const divStyle = {
-            time: Date.now().toString(),
-            pri: pri,
-            id: leftMost.id,
-            styles: {
-              marginLeft: marginLeftValue + "px",
-              textAlign: "center",
-            },
-          };
-          if (applyStyle(divStyle)) {
-            socket.emit("update-style", JSON.stringify(divStyle));
-          }
-          checkLeftmost = leftMost;
-        }
-      });
-      return;
-    } else if (input == "right") {
-      selectedDivIds.forEach((divId) => {
-        const leftMost = findLeftMostInSameRow(divId);
-        if (checkLeftmost != leftMost) {
-          const marginLeftValue = calculateMarginLeftForRightAlign(leftMost.id);
-          const divStyle = {
-            time: Date.now().toString(),
-            pri: pri,
-            id: leftMost.id,
-            styles: {
-              marginLeft: marginLeftValue + "px",
-              textAlign: "right",
-            },
-          };
-          if (applyStyle(divStyle)) {
-            socket.emit("update-style", JSON.stringify(divStyle));
-          }
-          checkLeftmost = leftMost;
-        }
-      });
-      return;
-    } else if (input == "left") {
-      selectedDivIds.forEach((divId) => {
-        const leftMost = findLeftMostInSameRow(divId);
-        if (checkLeftmost != leftMost) {
-          const marginLeftValue = 0;
-          const divStyle = {
-            time: Date.now().toString(),
-            pri: pri,
-            id: leftMost.id,
-            styles: {
-              marginLeft: "",
-              textAlign: "",
-            },
-          };
-          if (applyStyle(divStyle)) {
-            socket.emit("update-style", JSON.stringify(divStyle));
-          }
-          checkLeftmost = leftMost;
-        }
-      });
-      return;
-    }
-  } else {
-    // console.log("Không có thẻ <div> nào được bôi đen hoặc có id.");
-  }
-}
-
 function changeFontSize(input) {
   const selectedDivIds = getSelectedDivIds();
   if (selectedDivIds.length > 0) {
@@ -1868,9 +1970,11 @@ function handleAlignedInput(currentDiv, insertedDiv, check, isDeleted = false) {
   }
 }
 
-function calculateMarginLeftForRightAlign(divId) {
+function calculateMarginLeftForRightAlign(divId, haha = "") {
   const content = document.getElementById("content");
-  const targetDiv = document.getElementById(divId);
+  const targetDiv = document.getElementById(divId) || haha;
+  console.log("content: ", content);
+  console.log("targetDiv: ", targetDiv);
 
   if (content && targetDiv) {
     const contentStyle = window.getComputedStyle(content);
@@ -1919,8 +2023,8 @@ function calculateMarginLeftForRightAlign(divId) {
   }
 }
 
-function calculateMarginLeftForCenterAlign(divId) {
-  return calculateMarginLeftForRightAlign(divId) / 2;
+function calculateMarginLeftForCenterAlign(divId, haha = "") {
+  return calculateMarginLeftForRightAlign(divId, haha) / 2;
 }
 
 onMounted(() => {

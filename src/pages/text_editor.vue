@@ -99,6 +99,23 @@ const handleFileInput = async (event) => {
         // Hiển thị nội dung HTML đã chuyển đổi trong contentDiv
         contentDiv.innerHTML = htmlContent;
 
+        // chèn thẻ id rỗng ở đầu
+        // Tạo thẻ div mới
+        const newDiv = document.createElement("div");
+
+        // Gán id và nội dung cho thẻ div mới
+        newDiv.id = ""; // Thay "newDivId" bằng id bạn muốn
+        newDiv.textContent = ""; // Thay "Nội dung mới" bằng nội dung bạn muốn
+
+        // Chèn thẻ div mới vào đầu của contentDiv
+        contentDiv.insertBefore(newDiv, contentDiv.firstChild);
+
+        // Tạo thẻ <br>
+        const brElement = document.createElement("br");
+
+        // Chèn thẻ <br> vào cuối contentDiv
+        contentDiv.appendChild(brElement);
+
         // Gửi sự kiện insert-one và update-style cho từng ký tự qua socket
         charDataArray.forEach((charData) => {
           const characterToAvoid = "&nbsp;"; // Ký tự cần loại bỏ
@@ -356,11 +373,9 @@ function convertDocxXmlToHtml(xmlContent) {
           styles["text-decoration"] = "underline";
         }
 
-        styles["display"] = "inline"; // Cài đặt kiểu hiển thị mặc định
-
         // Tạo các phần tử div cho từng ký tự
         for (const char of textContent) {
-          const charId = previousId ? spawnID(previousId, null) : "1:A";
+          const charId = previousId ? spawnID(previousId, null) : `1:${pri}`;
 
           const styleString = Object.entries(styles)
             .map(([key, value]) => `${key}: ${value};`)
@@ -386,26 +401,8 @@ function convertDocxXmlToHtml(xmlContent) {
       const parsedHtml = parser.parseFromString(charactersHtml, "text/html");
       const parsedElements = Array.from(parsedHtml.body.children);
 
-      const containerWidth = document
-        .getElementById("content")
-        .getBoundingClientRect().width;
-
-      const totalWidth = parsedElements.reduce(
-        (acc, el) => acc + el.offsetWidth,
-        0
-      );
-
-      let marginLeft = 0;
-      if (paragraphAlignment === "center") {
-        marginLeft = (containerWidth - totalWidth) / 2;
-      } else if (paragraphAlignment === "right") {
-        marginLeft = containerWidth - totalWidth;
-      }
-
       parsedElements.forEach((el, index) => {
         if (index === 0) {
-          // el.style.marginLeft = `${Math.max(0, marginLeft)}px`;
-          el.style.marginLeft = "0px";
           el.style.textAlign = paragraphAlignment;
         }
       });
@@ -417,7 +414,7 @@ function convertDocxXmlToHtml(xmlContent) {
 
     // Xử lý đoạn văn rỗng
     if (isParagraphEmpty) {
-      const lineBreakId = previousId ? spawnID(previousId, null) : "1:A";
+      const lineBreakId = previousId ? spawnID(previousId, null) : `1:${pri}`;
       charDataArray.push({
         id: lineBreakId,
         content: "&nbsp;",
@@ -425,7 +422,7 @@ function convertDocxXmlToHtml(xmlContent) {
       });
       previousId = lineBreakId;
     } else {
-      const newLineId = previousId ? spawnID(previousId, null) : "1:A";
+      const newLineId = previousId ? spawnID(previousId, null) : `1:${pri}`;
       paragraphHtml += `<div id="${newLineId}" style="display: block;"></div>`;
       charDataArray.push({
         id: newLineId,
@@ -2501,15 +2498,15 @@ onMounted(() => {
   showCode.value = document.querySelector("#show-code");
   contentDiv.value = document.querySelector("#content");
   contentDiv.value.innerHTML = `
-        <div id=""></div></div><div id="1:A">a</div><div id="2:B">b</div><div id="3:A">c</div><div id="4:A">d</div><br>
+        <div id=""></div></div><div id="1:1">a</div><div id="2:2">b</div><div id="3:1">c</div><div id="4:2">d</div><br>
   `;
+  ``;
 });
 
 onBeforeUnmount(() => {
   socket.disconnect();
 });
 </script>
-
 <template>
   <div class="container">
     <div class="container mt-3" style="width: 1092px">

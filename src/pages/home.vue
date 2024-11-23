@@ -385,6 +385,7 @@ const handleLogout = async () => {
   }
 };
 const fetchDocuments = async () => {
+  console.log(ownerId);
   const result = await axios.get(
     `${import.meta.env.VITE_SERVER_URL}/documents/${ownerId}`,
     {

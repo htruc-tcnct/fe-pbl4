@@ -70,6 +70,11 @@ const handleFileInput = async (event) => {
     const divElements = contentDiv.querySelectorAll("div");
     divElements.forEach((div) => {
       const charData = { id: div.id }; // Dữ liệu ký tự để xóa
+      const idUserAndIdDocument = {
+        idUser: idUser,
+        idDoc: idDoc,
+      };
+      charData.UserAndDoc = idUserAndIdDocument;
       socket.emit("delete-one", JSON.stringify(charData)); // Gửi yêu cầu xóa qua socket
     });
     contentDiv.innerHTML = ""; // Làm sạch nội dung hiển thị
@@ -124,6 +129,11 @@ const handleFileInput = async (event) => {
           }
           const styles = parseStyleString(charData.style); // Phân tích chuỗi style thành đối tượng
           charData.styles = styles; // Gán đối tượng style vào dữ liệu ký tự
+          const idUserAndIdDocument = {
+            idUser: idUser,
+            idDoc: idDoc,
+          };
+          charData.UserAndDoc = idUserAndIdDocument;
           delete charData.style; // Xóa thuộc tính style gốc
           socket.emit("insert-one", JSON.stringify(charData)); // Gửi sự kiện insert ký tự
           socket.emit("update-style", JSON.stringify(charData)); // Gửi sự kiện update style
@@ -208,6 +218,11 @@ function makeSelectedDivsAlign(input, haha = "") {
 
         // Áp dụng phong cách và gửi sự kiện socket nếu thành công
         if (applyStyle(divStyle)) {
+          const idUserAndIdDocument = {
+            idUser: idUser,
+            idDoc: idDoc,
+          };
+          divStyle.UserAndDoc = idUserAndIdDocument;
           socket.emit("update-style", JSON.stringify(divStyle));
         }
 
@@ -244,6 +259,11 @@ function makeSelectedDivsAlign(input, haha = "") {
 
         // Áp dụng phong cách và gửi sự kiện socket
         if (applyStyle(divStyle)) {
+          const idUserAndIdDocument = {
+            idUser: idUser,
+            idDoc: idDoc,
+          };
+          divStyle.UserAndDoc = idUserAndIdDocument;
           socket.emit("update-style", JSON.stringify(divStyle));
         }
 
@@ -275,6 +295,11 @@ function makeSelectedDivsAlign(input, haha = "") {
 
         // Áp dụng phong cách và gửi sự kiện socket
         if (applyStyle(divStyle)) {
+          const idUserAndIdDocument = {
+            idUser: idUser,
+            idDoc: idDoc,
+          };
+          divStyle.UserAndDoc = idUserAndIdDocument;
           socket.emit("update-style", JSON.stringify(divStyle));
         }
 
@@ -590,6 +615,8 @@ let active = false;
 const showCode = ref(null);
 const contentDiv = ref(null);
 var pri;
+var idUser; // tạm để test
+var idDoc;
 let arrContentForCtrlV = [];
 let arrdivStyle = [];
 
@@ -739,6 +766,11 @@ const XuLyNut = (event) => {
         id: newDiv.id,
         content: newDiv.textContent,
       };
+      const idUserAndIdDocument = {
+        idUser: idUser,
+        idDoc: idDoc,
+      };
+      divVuaTao.UserAndDoc = idUserAndIdDocument;
       socket.emit("insert-one", JSON.stringify(divVuaTao));
       if (kiemTraCanLe != -1) {
         if (currentDiv.textContent != "") {
@@ -756,6 +788,11 @@ const XuLyNut = (event) => {
             },
           };
           if (applyStyle(divStyle)) {
+            const idUserAndIdDocument = {
+              idUser: idUser,
+              idDoc: idDoc,
+            };
+            divStyle.UserAndDoc = idUserAndIdDocument;
             socket.emit("update-style", JSON.stringify(divStyle));
           }
           divStyle = {
@@ -768,6 +805,11 @@ const XuLyNut = (event) => {
             },
           };
           if (applyStyle(divStyle)) {
+            const idUserAndIdDocument = {
+              idUser: idUser,
+              idDoc: idDoc,
+            };
+            divStyle.UserAndDoc = idUserAndIdDocument;
             socket.emit("update-style", JSON.stringify(divStyle));
           }
           handleAlignedInput(newDiv, newDiv, kiemTraCanLe);
@@ -863,6 +905,11 @@ const XuLyNut = (event) => {
               },
             };
             if (applyStyle(divStyle)) {
+              const idUserAndIdDocument = {
+                idUser: idUser,
+                idDoc: idDoc,
+              };
+              divStyle.UserAndDoc = idUserAndIdDocument;
               socket.emit("update-style", JSON.stringify(divStyle));
             }
             currentDiv.remove();
@@ -897,6 +944,11 @@ const XuLyNut = (event) => {
           const charToDelete = {
             id: idCurrentDiv,
           };
+          const idUserAndIdDocument = {
+            idUser: idUser,
+            idDoc: idDoc,
+          };
+          charToDelete.UserAndDoc = idUserAndIdDocument;
           socket.emit("delete-one", JSON.stringify(charToDelete));
         } else {
           console.log("không có div nằm trước currentDiv");
@@ -1002,6 +1054,11 @@ const XuLyNut = (event) => {
           id: newDiv.id,
           content: newDiv.textContent,
         };
+        const idUserAndIdDocument = {
+          idUser: idUser,
+          idDoc: idDoc,
+        };
+        divVuaTao.UserAndDoc = idUserAndIdDocument;
         socket.emit("insert-one", JSON.stringify(divVuaTao));
         const divStyle = {
           id: newDiv.id, // The ID of the div to update
@@ -1009,6 +1066,7 @@ const XuLyNut = (event) => {
             display: "block",
           },
         };
+        divStyle.UserAndDoc = idUserAndIdDocument;
         socket.emit("update-style", JSON.stringify(divStyle));
       } else {
         console.log("khong co div trc");
@@ -1361,6 +1419,11 @@ function XuLyGoODauContent(currentDiv, key) {
       },
     };
     if (applyStyle(divStyle)) {
+      const idUserAndIdDocument = {
+        idUser: idUser,
+        idDoc: idDoc,
+      };
+      divStyle.UserAndDoc = idUserAndIdDocument;
       socket.emit("update-style", JSON.stringify(divStyle));
     }
     divStyle = {
@@ -1373,6 +1436,11 @@ function XuLyGoODauContent(currentDiv, key) {
       },
     };
     if (applyStyle(divStyle)) {
+      const idUserAndIdDocument = {
+        idUser: idUser,
+        idDoc: idDoc,
+      };
+      divStyle.UserAndDoc = idUserAndIdDocument;
       socket.emit("update-style", JSON.stringify(divStyle));
     }
     handleAlignedInput(newDiv, newDiv, kiemTraCanLe);
@@ -1412,6 +1480,11 @@ function XuLyGoODauContent(currentDiv, key) {
     id: newDiv.id,
     content: newDiv.textContent,
   };
+  const idUserAndIdDocument = {
+    idUser: idUser,
+    idDoc: idDoc,
+  };
+  divVuaTao.UserAndDoc = idUserAndIdDocument;
   socket.emit("insert-one", JSON.stringify(divVuaTao));
   if (needUpdateStyle) {
     const divStyle = {
@@ -1420,6 +1493,11 @@ function XuLyGoODauContent(currentDiv, key) {
         display: "block",
       },
     };
+    const idUserAndIdDocument = {
+      idUser: idUser,
+      idDoc: idDoc,
+    };
+    divStyle.UserAndDoc = idUserAndIdDocument;
     socket.emit("update-style", JSON.stringify(divStyle));
   }
 }
@@ -1502,6 +1580,11 @@ function XuLyGoKhiContentTrong(key) {
     id: newDiv.id,
     content: newDiv.textContent,
   };
+  const idUserAndIdDocument = {
+    idUser: idUser,
+    idDoc: idDoc,
+  };
+  divVuaTao.UserAndDoc = idUserAndIdDocument;
   socket.emit("insert-one", JSON.stringify(divVuaTao));
   if (needUpdateStyle) {
     const divStyle = {
@@ -1510,6 +1593,11 @@ function XuLyGoKhiContentTrong(key) {
         display: "block",
       },
     };
+    const idUserAndIdDocument = {
+      idUser: idUser,
+      idDoc: idDoc,
+    };
+    divStyle.UserAndDoc = idUserAndIdDocument;
     socket.emit("update-style", JSON.stringify(divStyle));
   }
 }
@@ -1769,6 +1857,11 @@ function makeSelectedDivsBold() {
             },
           };
           if (applyStyle(divStyle)) {
+            const idUserAndIdDocument = {
+              idUser: idUser,
+              idDoc: idDoc,
+            };
+            divStyle.UserAndDoc = idUserAndIdDocument;
             socket.emit("update-style", JSON.stringify(divStyle));
           }
         } else {
@@ -1781,6 +1874,11 @@ function makeSelectedDivsBold() {
             },
           };
           if (applyStyle(divStyle)) {
+            const idUserAndIdDocument = {
+              idUser: idUser,
+              idDoc: idDoc,
+            };
+            divStyle.UserAndDoc = idUserAndIdDocument;
             socket.emit("update-style", JSON.stringify(divStyle));
           }
         }
@@ -1808,6 +1906,11 @@ function makeSelectedDivsUnderLined() {
             },
           };
           if (applyStyle(divStyle)) {
+            const idUserAndIdDocument = {
+              idUser: idUser,
+              idDoc: idDoc,
+            };
+            divStyle.UserAndDoc = idUserAndIdDocument;
             socket.emit("update-style", JSON.stringify(divStyle));
           }
         } else {
@@ -1820,6 +1923,11 @@ function makeSelectedDivsUnderLined() {
             },
           };
           if (applyStyle(divStyle)) {
+            const idUserAndIdDocument = {
+              idUser: idUser,
+              idDoc: idDoc,
+            };
+            divStyle.UserAndDoc = idUserAndIdDocument;
             socket.emit("update-style", JSON.stringify(divStyle));
           }
         }
@@ -1847,6 +1955,11 @@ function makeSelectedDivsStrikethrough() {
             },
           };
           if (applyStyle(divStyle)) {
+            const idUserAndIdDocument = {
+              idUser: idUser,
+              idDoc: idDoc,
+            };
+            divStyle.UserAndDoc = idUserAndIdDocument;
             socket.emit("update-style", JSON.stringify(divStyle));
           }
         } else {
@@ -1859,6 +1972,11 @@ function makeSelectedDivsStrikethrough() {
             },
           };
           if (applyStyle(divStyle)) {
+            const idUserAndIdDocument = {
+              idUser: idUser,
+              idDoc: idDoc,
+            };
+            divStyle.UserAndDoc = idUserAndIdDocument;
             socket.emit("update-style", JSON.stringify(divStyle));
           }
         }
@@ -1959,6 +2077,11 @@ function changeFontSize(input) {
           },
         };
         if (applyStyle(divStyle)) {
+          const idUserAndIdDocument = {
+            idUser: idUser,
+            idDoc: idDoc,
+          };
+          divStyle.UserAndDoc = idUserAndIdDocument;
           socket.emit("update-style", JSON.stringify(divStyle));
         }
       }
@@ -1987,6 +2110,11 @@ function makeSelectedDivsItalic() {
             },
           };
           if (applyStyle(divStyle)) {
+            const idUserAndIdDocument = {
+              idUser: idUser,
+              idDoc: idDoc,
+            };
+            divStyle.UserAndDoc = idUserAndIdDocument;
             socket.emit("update-style", JSON.stringify(divStyle));
           }
         } else {
@@ -2000,6 +2128,11 @@ function makeSelectedDivsItalic() {
             },
           };
           if (applyStyle(divStyle)) {
+            const idUserAndIdDocument = {
+              idUser: idUser,
+              idDoc: idDoc,
+            };
+            divStyle.UserAndDoc = idUserAndIdDocument;
             socket.emit("update-style", JSON.stringify(divStyle));
           }
         }
@@ -2027,6 +2160,11 @@ function handleColorChange(event) {
           },
         };
         if (applyStyle(divStyle)) {
+          const idUserAndIdDocument = {
+            idUser: idUser,
+            idDoc: idDoc,
+          };
+          divStyle.UserAndDoc = idUserAndIdDocument;
           socket.emit("update-style", JSON.stringify(divStyle));
         }
       }
@@ -2053,6 +2191,11 @@ function handleBackGroundColorChange(event) {
           },
         };
         if (applyStyle(divStyle)) {
+          const idUserAndIdDocument = {
+            idUser: idUser,
+            idDoc: idDoc,
+          };
+          divStyle.UserAndDoc = idUserAndIdDocument;
           socket.emit("update-style", JSON.stringify(divStyle));
         }
       }
@@ -2370,6 +2513,11 @@ function handleAlignedInput(currentDiv, insertedDiv, check, isDeleted = false) {
     },
   };
   if (applyStyle(divStyle)) {
+    const idUserAndIdDocument = {
+      idUser: idUser,
+      idDoc: idDoc,
+    };
+    divStyle.UserAndDoc = idUserAndIdDocument;
     socket.emit("update-style", JSON.stringify(divStyle));
   }
 }
@@ -2454,6 +2602,11 @@ function HandleAlignAfterOpenFile() {
         },
       };
       if (applyStyle(divStyle)) {
+        const idUserAndIdDocument = {
+          idUser: idUser,
+          idDoc: idDoc,
+        };
+        divStyle.UserAndDoc = idUserAndIdDocument;
         socket.emit("update-style", JSON.stringify(divStyle));
       }
     } else if (textAlign === "center") {
@@ -2468,6 +2621,49 @@ function HandleAlignAfterOpenFile() {
         },
       };
       if (applyStyle(divStyle)) {
+        const idUserAndIdDocument = {
+          idUser: idUser,
+          idDoc: idDoc,
+        };
+        divStyle.UserAndDoc = idUserAndIdDocument;
+        socket.emit("update-style", JSON.stringify(divStyle));
+      }
+    }
+  });
+}
+// gửi content đang được edit cho client mới vào
+function sendContentToNewClient(idNewClient) {
+  // Lấy tất cả các thẻ div trong #content
+  const divs = document.querySelectorAll("#content div");
+
+  // Duyệt qua từng thẻ div
+  divs.forEach((div) => {
+    if (div.id !== "") {
+      // gửi Div cho client vừa join
+      const divVuaTao = {
+        id: div.id,
+        content: div.textContent,
+      };
+      const idUserAndIdDocument = {
+        idUser: idUser,
+        idDoc: idDoc,
+        idNewClient: idNewClient,
+      };
+      divVuaTao.UserAndDoc = idUserAndIdDocument;
+      socket.emit("insert-one", JSON.stringify(divVuaTao));
+      // Khởi tạo đối tượng chứa thông tin
+      const divStyle = {
+        id: div.id, // Lấy ID của thẻ div
+        styles: {},
+      };
+
+      // Duyệt qua các thuộc tính style inline
+      for (let i = 0; i < div.style.length; i++) {
+        const styleName = div.style[i]; // Tên của style (ví dụ: "color", "display")
+        divStyle.styles[styleName] = div.style[styleName]; // Gán giá trị của style
+      }
+      if (Object.keys(divStyle.styles).length !== 0) {
+        divStyle.UserAndDoc = idUserAndIdDocument;
         socket.emit("update-style", JSON.stringify(divStyle));
       }
     }
@@ -2477,28 +2673,93 @@ onMounted(() => {
   socket.connect();
   socket.on("give-priority", (doUuTien) => {
     pri = doUuTien;
-    console.log(`độ ưu tiên là ${pri}`);
+    // gán tạm idUser và idDoc là pri để test
+    idUser = pri;
+    idDoc = 1;
+    console.log(`độ ưu tiên là ${pri} idUser ${idUser}`);
+
+    // Tạo đối tượng idUserAndIdDocument sau khi đã nhận được giá trị
+    const idUserAndIdDocument = {
+      idUser: idUser,
+      idDoc: idDoc,
+    };
+
+    // Gửi yêu cầu sau khi nhận đủ thông tin
+    socket.emit("request-edited-content", JSON.stringify(idUserAndIdDocument));
   });
   socket.on("update-insert-one", (charToInsert) => {
     const kiTu = JSON.parse(charToInsert);
-    updateInsertion(kiTu);
+    // lệnh insert của tài liệu khác
+    if (idDoc != kiTu.UserAndDoc.idDoc) {
+      return;
+    }
+    if (kiTu.UserAndDoc.hasOwnProperty("idNewClient") == true) {
+      if (kiTu.UserAndDoc.idNewClient == idUser) {
+        updateInsertion(kiTu);
+      } else {
+        return;
+      }
+    } else {
+      updateInsertion(kiTu);
+    }
   });
   socket.on("update-delete-one", (charToDelete) => {
     const tempChartoDelete = JSON.parse(charToDelete);
-    updateDetele(tempChartoDelete);
-  });
-  socket.on("update-modify-id", (idupdated) => {
-    const tmpIdUpdated = JSON.parse(idupdated);
-    updateId(tmpIdUpdated);
+
+    // lệnh delete của tài liệu khác
+    if (idDoc != tempChartoDelete.UserAndDoc.idDoc) {
+      return;
+    }
+
+    if (tempChartoDelete.UserAndDoc.hasOwnProperty("idNewClient") == true) {
+      if (tempChartoDelete.UserAndDoc.idNewClient == idUser) {
+        updateDetele(tempChartoDelete);
+      } else {
+        return;
+      }
+    } else {
+      updateDetele(tempChartoDelete);
+    }
   });
   socket.on("update-modify-style", (divStyle) => {
     const idUpdatedStyle = JSON.parse(divStyle);
-    applyStyle(idUpdatedStyle);
+
+    // lệnh style của tài liệu khác
+    if (idDoc != idUpdatedStyle.UserAndDoc.idDoc) {
+      return;
+    }
+
+    if (idUpdatedStyle.UserAndDoc.hasOwnProperty("idNewClient") == true) {
+      if (idUpdatedStyle.UserAndDoc.idNewClient == idUser) {
+        applyStyle(idUpdatedStyle);
+      } else {
+        return;
+      }
+    } else {
+      applyStyle(idUpdatedStyle);
+    }
+  });
+  // nhận request content đang được edit từ chủ room
+  socket.on("send-content-to-new-Client", (idUserAndRoom) => {
+    const idUsertmp = JSON.parse(idUserAndRoom).idUser;
+    const idOwner = JSON.parse(idUserAndRoom).idOwner;
+
+    // lệnh requset content của tài liệu khác
+    if (idDoc != JSON.parse(idUserAndRoom).idDoc) {
+      return;
+    }
+
+    console.log("idUsertmp ", idUsertmp, "idOwner ", idOwner);
+    // nếu là chủ phòng thì mới gửi content đi cho new client
+    if (idOwner == idUser) {
+      console.log("xử lý gửi content");
+      sendContentToNewClient(idUsertmp);
+    }
   });
   showCode.value = document.querySelector("#show-code");
   contentDiv.value = document.querySelector("#content");
   contentDiv.value.innerHTML = `
-        <div id=""></div></div><div id="1:1">a</div><div id="2:2">b</div><div id="3:1">c</div><div id="4:2">d</div><br>
+        <div id=""></div><br>
   `;
   ``;
 });
@@ -2507,19 +2768,12 @@ onBeforeUnmount(() => {
   socket.disconnect();
 });
 </script>
+
 <template>
   <div class="container">
     <div class="container mt-3" style="width: 1092px">
       <div class="toolbar p-3 bg-light border rounded" style="width: 1092px">
-        <div
-          class="d-flex justify-content-start align-items-center mb-3 position-relative"
-        >
-          <img src="../assets/logo.png" alt="" style="width: 40px" />
-          <input
-            type="text"
-            class="border border-success py-1 px-5 border-opacity-25 me-3 rounded"
-            placeholder="Document Title"
-          />
+        <div class="d-flex justify-content-start align-items-center mb-3">
           <!-- File Dropdown -->
           <div class="dropdown me-2">
             <button
@@ -2618,23 +2872,46 @@ onBeforeUnmount(() => {
               </li>
             </ul>
           </div>
-          <div class="dropdown position-absolute top-0 end-0">
-            <button
-              class="btn btn-secondary dropdown-toggle"
-              type="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              Share
-            </button>
-            <ul class="dropdown-menu dropdown-menu-dark">
-              <li><a class="dropdown-item active" href="#">Coppy Id</a></li>
-              <li><a class="dropdown-item" href="#">Email</a></li>
-            </ul>
-          </div>
+
           <!-- Color Picker -->
+          <div
+            class="d-flex align-items-center border border-secondary px-2 py-1 rounded"
+          >
+            <!-- Label for Color Picker -->
+            <label for="textColorPicker" class="me-2">Color</label>
+
+            <!-- Color Picker -->
+            <input
+              type="color"
+              id="textColorPicker"
+              class="form-control form-control-color"
+              @input="handleColorChange"
+              value="#000000"
+              title="Choose text color"
+              style="height: 22px; width: 24px"
+            />
+          </div>
+
+          <!-- Background Color Picker -->
+          <div
+            class="d-flex align-items-center border border-secondary px-2 py-1 rounded ms-2"
+          >
+            <!-- Label for Color Picker -->
+            <label for="textColorPicker" class="me-2">Background</label>
+
+            <!-- Color Picker -->
+            <input
+              type="color"
+              id="textColorPicker"
+              class="form-control form-control-color"
+              @input="handleBackGroundColorChange"
+              value="#000000"
+              title="Choose text color"
+              style="height: 22px; width: 24px"
+            />
+          </div>
         </div>
-        <hr />
+
         <div class="d-flex justify-content-start align-items-center">
           <!-- Toolbar buttons -->
           <button
@@ -2679,42 +2956,6 @@ onBeforeUnmount(() => {
           >
             <i class="fas fa-align-right"></i>
           </button>
-          <div
-            class="d-flex align-items-center border border-secondary px-2 py-1 rounded"
-          >
-            <!-- Label for Color Picker -->
-            <label for="textColorPicker" class="me-2">Color</label>
-
-            <!-- Color Picker -->
-            <input
-              type="color"
-              id="textColorPicker"
-              class="form-control form-control-color"
-              @input="handleColorChange"
-              value="#000000"
-              title="Choose text color"
-              style="height: 22px; width: 24px"
-            />
-          </div>
-
-          <!-- Background Color Picker -->
-          <div
-            class="d-flex align-items-center border border-secondary px-2 py-1 rounded ms-2"
-          >
-            <!-- Label for Color Picker -->
-            <label for="textColorPicker" class="me-2">Background</label>
-
-            <!-- Color Picker -->
-            <input
-              type="color"
-              id="textColorPicker"
-              class="form-control form-control-color"
-              @input="handleBackGroundColorChange"
-              value="#000000"
-              title="Choose text color"
-              style="height: 22px; width: 24px"
-            />
-          </div>
         </div>
       </div>
 

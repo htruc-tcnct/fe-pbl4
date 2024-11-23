@@ -110,16 +110,38 @@
         {{ errorMessageJoin }}
       </p>
     </section>
-    <section class="assigned-activities text-center">
-      <h2 class="mb-4">
-        Assigned Activities
-        <button
-          class="border-0 bg-light text-body-secondary"
-          @click="handleCreateNewDoc()"
-        >
-          <i class="fas fa-folder-plus"></i>
-        </button>
-      </h2>
+    <section class="assigned-activities">
+      <div class="row">
+        <div class="col-6 text-end">
+          <h2 class="mb-4">Assigned Activities</h2>
+        </div>
+        <div class="col-6 text-start">
+          <div class="dropdown">
+            <button
+              class="btn dropdown-toggle"
+              type="button"
+              data-bs-toggle="dropdown"
+              aria-expanded="true"
+            >
+              <i class="fas fa-plus"></i>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-dark">
+              <li @click="handleCreateNewDoc">
+                <a class="dropdown-item active" href="#">New</a>
+              </li>
+              <li @click="handleOpenExistingFile">
+                <a class="dropdown-item" href="#">Open exist file</a>
+              </li>
+            </ul>
+            <input
+              type="file"
+              id="fileInput"
+              style="display: none"
+              accept=".docx"
+            />
+          </div>
+        </div>
+      </div>
 
       <div
         class="activities-container d-flex flex-wrap gap-3 border rounded border-secondary mx-5 p-4"
@@ -184,6 +206,11 @@
       @close="closeModal"
       @documentCreated="handleDocumentCreated"
     />
+    <openExistingFile
+      :visible="currentModal"
+      @close="closeModal"
+      @documentCreated="handleDocumentCreated"
+    />
   </div>
 </template>
 <script setup>
@@ -191,9 +218,20 @@ import { ref, onMounted, nextTick } from "vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
 import { useStore } from "vuex";
+import PizZip from "pizzip";
+import Docxtemplater from "docxtemplater";
+import {
+  AlignmentAttributes,
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+} from "docx";
+import { saveAs } from "file-saver";
 import SettingModal from "./setting.vue";
 import settingShareModal from "./settingShare.vue";
 import createDocModal from "./create_new_doc.vue";
+import openExistingFile from "./openExistingFile.vue";
 let ownerId = ref("");
 let documents = ref([]);
 let avatarUrl = ref("");
@@ -210,6 +248,7 @@ const contextMenuY = ref(0);
 let selectedDocument = ref(null);
 const errorMessageJoin = ref("");
 const joinCode = ref("");
+
 const joinDocument = async () => {
   if (!joinCode.value) {
     errorMessageJoin.value = "Please enter a join code.";
@@ -236,7 +275,9 @@ const joinDocument = async () => {
     }
   }
 };
-
+const openFile = () => {
+  document.getElementById("fileInput").click();
+};
 const goToTextEditor = (documentId) => {
   // console.log(ownerIdDocument.value);
 
@@ -261,6 +302,9 @@ const handleSettingShare = async (document) => {
 };
 const handleCreateNewDoc = () => {
   currentModal.value = "createNewDoc";
+};
+const handleOpenExistingFile = () => {
+  currentModal.value = "openExistingFile";
 };
 const handleDocumentCreated = (response) => {
   const newDocument = response.createdDocument || response;
@@ -452,6 +496,9 @@ onMounted(async () => {
 
 .activity-title {
   font-size: 16px;
+}
+.dropdown-toggle::after {
+  display: none !important;
 }
 
 ul li:last-child button:hover {

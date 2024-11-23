@@ -248,7 +248,7 @@ const contextMenuY = ref(0);
 let selectedDocument = ref(null);
 const errorMessageJoin = ref("");
 const joinCode = ref("");
-
+let ownerIdDocument = ref("");
 const joinDocument = async () => {
   if (!joinCode.value) {
     errorMessageJoin.value = "Please enter a join code.";
@@ -262,8 +262,13 @@ const joinDocument = async () => {
       }
     );
     const documentID = response.data.document._id;
+    console.log(">>>>>>>>>>>>>>>: ", response.data);
+    ownerIdDocument.value = response.data.document.documentOwnerID;
     router.push({
-      path: `/documents/detail/${documentID}`,
+      path: `/documents/detail/${documentID}?ownerIdDocument=${ownerIdDocument.value}`,
+      query: {
+        ownerIdDocument: ownerIdDocument.value,
+      },
     });
   } catch (error) {
     if (error.response && error.response.status === 404) {
@@ -279,12 +284,10 @@ const openFile = () => {
   document.getElementById("fileInput").click();
 };
 const goToTextEditor = (documentId) => {
-  // console.log(ownerIdDocument.value);
-
   router.push({
     path: `/documents/detail/${documentId}`,
     query: {
-      // ownerIdDocument: ownerIdDocument.value,
+      ownerIdDocument: ownerIdDocument.value,
     },
   });
 };
@@ -439,7 +442,8 @@ const fetchDocuments = async () => {
 
   if (result.data.documents) {
     documents.value = result.data.documents;
-    // ownerIdDocument.value = result.data.documents[0].documentOwnerID;
+    ownerIdDocument.value = result.data.documents[0].documentOwnerID;
+    console.log(result.data);
   } else {
     console.warn("No documents found for the user.");
   }

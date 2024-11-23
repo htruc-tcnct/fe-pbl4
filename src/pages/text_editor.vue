@@ -15,7 +15,9 @@ import { saveAs } from "file-saver";
 import { useRouter } from "vue-router";
 import { socket } from "../socket";
 let documentDetail = ref("");
-let documentFull = ref("");
+var idUser = localStorage.getItem("idUser"); // tạm để test
+const props = defineProps(["id", "ownerIdDocument"]);
+var idDoc = props.id;
 
 const fetchDocumentInfor = async () => {
   try {
@@ -31,6 +33,7 @@ const fetchDocumentInfor = async () => {
     console.error("Lỗi khi lấy thông tin tài liệu:", error);
   }
 };
+
 const fetchGoToDocumentInfor = async () => {
   try {
     const result = await axios.get(
@@ -67,16 +70,7 @@ onMounted(() => {
 const openFile = () => {
   document.getElementById("fileInput").click();
 };
-function parseStyleString(styleString) {
-  const styles = {};
-  styleString.split(";").forEach((style) => {
-    if (style.trim()) {
-      const [key, value] = style.split(":");
-      styles[key.trim()] = value.trim();
-    }
-  });
-  return styles;
-}
+
 const downloadDocument = async (documentId) => {
   try {
     const response = await axios.get(
@@ -103,6 +97,16 @@ const downloadDocument = async (documentId) => {
   }
 };
 
+function parseStyleString(styleString) {
+  const styles = {};
+  styleString.split(";").forEach((style) => {
+    if (style.trim()) {
+      const [key, value] = style.split(":");
+      styles[key.trim()] = value.trim();
+    }
+  });
+  return styles;
+}
 const handleFileInput = async (event) => {
   // Lấy file đầu tiên từ input
   const file = event.target.files[0];
@@ -652,14 +656,11 @@ const rgbToHex = (rgb) => {
   return rgb;
 };
 
-const props = defineProps(["id", "ownerIdDocument"]);
 let active = false;
 
 const showCode = ref(null);
 const contentDiv = ref(null);
 var pri;
-var idUser; // tạm để test
-var idDoc;
 let arrContentForCtrlV = [];
 let arrdivStyle = [];
 
@@ -2712,22 +2713,22 @@ function sendContentToNewClient(idNewClient) {
     }
   });
 }
-
 onMounted(() => {
   socket.connect();
   socket.on("give-priority", (doUuTien) => {
     pri = doUuTien;
     // gán tạm idUser và idDoc là pri để test
-    idUser = pri;
-    idDoc = 1;
+    idUser = localStorage.getItem("idUser");
+    idDoc = props.id;
     console.log(`độ ưu tiên là ${pri} idUser ${idUser}`);
 
     // Tạo đối tượng idUserAndIdDocument sau khi đã nhận được giá trị
     const idUserAndIdDocument = {
       idUser: idUser,
       idDoc: idDoc,
+      idOwner: props.ownerIdDocument,
     };
-
+    console.log("+++++++++++++++++++++++++++++: ", props.ownerIdDocument);
     // Gửi yêu cầu sau khi nhận đủ thông tin
     socket.emit("request-edited-content", JSON.stringify(idUserAndIdDocument));
   });
@@ -2786,7 +2787,7 @@ onMounted(() => {
   // nhận request content đang được edit từ chủ room
   socket.on("send-content-to-new-Client", (idUserAndRoom) => {
     const idUsertmp = JSON.parse(idUserAndRoom).idUser;
-    const idOwner = JSON.parse(idUserAndRoom).idOwner;
+    const idOwner = props.ownerIdDocument;
 
     // lệnh requset content của tài liệu khác
     if (idDoc != JSON.parse(idUserAndRoom).idDoc) {

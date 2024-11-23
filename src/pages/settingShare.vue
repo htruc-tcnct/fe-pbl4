@@ -115,6 +115,7 @@
 <script setup>
 import { ref, onMounted, defineProps, defineEmits, watch } from "vue";
 import axios from "axios";
+import { data } from "jquery";
 
 const props = defineProps(["idDoc", "visible"]);
 const emit = defineEmits(["close", "documentUpdated"]);
@@ -158,7 +159,6 @@ const fetchUserInfo = async () => {
 const fetchDocumentInfo = async () => {
   try {
     if (!props.idDoc || props.idDoc === "") {
-      console.error("Invalid idDoc:", props.idDoc);
       return;
     }
     const response = await axios.get(
@@ -168,12 +168,13 @@ const fetchDocumentInfo = async () => {
       }
     );
     if (response.data && response.data.document) {
+      console.log(response.data);
       const doc = response.data.document;
       documentName.value = doc.documentTitle;
-      idDocument.value = doc.shareCode;
       selectedAccess.value = doc.accessLevel;
 
       console.log("Fetched document:", response.data.document);
+      idDocument.value = response.data.document.shareCode;
     } else {
       console.error("Invalid response structure:", response.data);
     }
@@ -208,7 +209,7 @@ const copyLink = async () => {
     alert("Share Code copied to clipboard!");
   } catch (err) {
     console.error("Error copying to clipboard:", err);
-    alert("Failed to copy share code.");
+    alert("Failed to copy share code.", err);
   }
 };
 const onSubmit = async () => {

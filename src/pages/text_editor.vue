@@ -15,6 +15,7 @@ import { saveAs } from "file-saver";
 import { useRouter } from "vue-router";
 import { socket } from "../socket";
 let documentDetail = ref("");
+let documentFull = ref("");
 
 const fetchDocumentInfor = async () => {
   try {
@@ -26,6 +27,20 @@ const fetchDocumentInfor = async () => {
     );
     documentDetail.value = result.data.document;
     // console.log("Thông tin tài liệu:", documentDetail.value);
+  } catch (error) {
+    console.error("Lỗi khi lấy thông tin tài liệu:", error);
+  }
+};
+const fetchGoToDocumentInfor = async () => {
+  try {
+    const result = await axios.get(
+      `${import.meta.env.VITE_SERVER_URL}/documents/go-to-detail/${props.id}`,
+      {
+        withCredentials: true,
+      }
+    );
+    documentFull.value = result.data.document;
+    console.log("Thông tin tài liệu documentFull:", documentFull.value);
   } catch (error) {
     console.error("Lỗi khi lấy thông tin tài liệu:", error);
   }
@@ -44,6 +59,8 @@ const copyRoomID = () => {
   }
 };
 onMounted(() => {
+  downloadDocument(props.id);
+  fetchGoToDocumentInfor();
   fetchDocumentInfor();
   copyRoomID();
 });
@@ -60,6 +77,32 @@ function parseStyleString(styleString) {
   });
   return styles;
 }
+const downloadDocument = async (documentId) => {
+  try {
+    const response = await axios.get(
+      `${import.meta.env.VITE_SERVER_URL}/documents/go-to-detail/${documentId}`,
+      {
+        responseType: "blob", // Định dạng nhị phân để nhận file
+      }
+    );
+
+    // Tạo một file object từ dữ liệu blob
+    const file = new File([response.data], `document_${documentId}.docx`, {
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    });
+
+    // Xử lý file bằng hàm `handleFileInput`
+    const fileInputEvent = {
+      target: {
+        files: [file], // Gán file vừa tải vào `files` của event
+      },
+    };
+    await handleFileInput(fileInputEvent);
+  } catch (error) {
+    console.error("Error downloading document:", error);
+  }
+};
+
 const handleFileInput = async (event) => {
   // Lấy file đầu tiên từ input
   const file = event.target.files[0];
@@ -2669,6 +2712,7 @@ function sendContentToNewClient(idNewClient) {
     }
   });
 }
+
 onMounted(() => {
   socket.connect();
   socket.on("give-priority", (doUuTien) => {

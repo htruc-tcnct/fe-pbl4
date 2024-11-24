@@ -49,11 +49,10 @@ const fetchGoToDocumentInfor = async () => {
   }
 };
 onMounted(() => {
-  fetchGoToDocumentInfor();
   fetchDocumentInfor();
   const idUser = localStorage.getItem("idUser");
-  console.log(":::::::::::::::::::::::::", props.ownerIdDocument);
-  console.log(":::::::::::::::::::::::::", idUser);
+  // console.log(":::::::::::::::::::::::::", props.ownerIdDocument);
+  // console.log(":::::::::::::::::::::::::", idUser);
   copyRoomID();
 });
 const copyRoomID = () => {
@@ -2678,11 +2677,21 @@ function HandleAlignAfterOpenFile() {
   });
 }
 // gửi content đang được edit cho client mới vào
+// Theo dõi danh sách client đã nhận nội dung
+const handledClients = new Set();
+
 function sendContentToNewClient(idNewClient) {
+  // Kiểm tra nếu client đã được xử lý
+  if (handledClients.has(idNewClient)) {
+    console.log(`Client ${idNewClient} đã nhận nội dung, bỏ qua.`);
+    return;
+  }
+
+  // Đánh dấu client đã được xử lý
+
   // Lấy tất cả các thẻ div trong #content
   const divs = document.querySelectorAll("#content div");
 
-  // Duyệt qua từng thẻ div
   divs.forEach((div) => {
     if (div.id !== "") {
       // gửi Div cho client vừa join
@@ -2697,29 +2706,37 @@ function sendContentToNewClient(idNewClient) {
       };
       divVuaTao.UserAndDoc = idUserAndIdDocument;
       socket.emit("insert-one", JSON.stringify(divVuaTao));
-      // Khởi tạo đối tượng chứa thông tin
+
+      // Khởi tạo đối tượng chứa thông tin style
       const divStyle = {
-        id: div.id, // Lấy ID của thẻ div
+        id: div.id,
         styles: {},
       };
 
       // Duyệt qua các thuộc tính style inline
       for (let i = 0; i < div.style.length; i++) {
-        const styleName = div.style[i]; // Tên của style (ví dụ: "color", "display")
-        divStyle.styles[styleName] = div.style[styleName]; // Gán giá trị của style
+        const styleName = div.style[i];
+        divStyle.styles[styleName] = div.style[styleName];
       }
+
       if (Object.keys(divStyle.styles).length !== 0) {
         divStyle.UserAndDoc = idUserAndIdDocument;
         socket.emit("update-style", JSON.stringify(divStyle));
       }
     }
   });
+
+  console.log(`Gửi nội dung cho client mới (ID: ${idNewClient})`);
 }
+
 onMounted(() => {
-  if (idUser === props.ownerIdDocument) {
+  socket.connect();
+
+  if (localStorage.getItem("idUser") === props.ownerIdDocument) {
+    fetchGoToDocumentInfor();
+
     downloadDocument(props.id);
   }
-  socket.connect();
   // localStorage.removeItem("idOwn");
   // localStorage.removeItem("documentId");
   // const idUserAndIdDocument = {
@@ -2734,18 +2751,19 @@ onMounted(() => {
     idUser = localStorage.getItem("idUser");
     idDoc = props.id;
     console.log(`độ ưu tiên là ${pri} idUser ${idUser}`);
-    // Tạo đối tượng idUserAndIdDocument sau khi đã nhận được giá trị
+    // // Tạo đối tượng idUserAndIdDocument sau khi đã nhận được giá trị
     const idUserAndIdDocument = {
       idUser: idUser,
       idDoc: idDoc,
       idOwner: props.ownerIdDocument,
     };
-    console.log("+++++++++++++++++++++++++++++: ", props.ownerIdDocument);
+    // console.log("+++++++++++++++++++++++++++++: ", props.ownerIdDocument);
     // Gửi yêu cầu sau khi nhận đủ thông tin
     socket.emit("request-edited-content", JSON.stringify(idUserAndIdDocument));
   });
   socket.on("update-insert-one", (charToInsert) => {
     const kiTu = JSON.parse(charToInsert);
+    console.log("KI TU: "), charToInsert;
     // lệnh insert của tài liệu khác
     if (idDoc != kiTu.UserAndDoc.idDoc) {
       return;
@@ -2798,19 +2816,17 @@ onMounted(() => {
   });
   // nhận request content đang được edit từ chủ room
   socket.on("send-content-to-new-Client", (idUserAndRoom) => {
-    const idUsertmp = JSON.parse(idUserAndRoom).idUser;
-    const idOwner = props.ownerIdDocument;
+    const parsedData = JSON.parse(idUserAndRoom);
+    const idUsertmp = parsedData.idOwner;
+    const idNewClient = parsedData.idUser;
 
-    // lệnh requset content của tài liệu khác
-    if (idDoc != JSON.parse(idUserAndRoom).idDoc) {
-      return;
-    }
+    // Kiểm tra nếu không phải tài liệu hiện tại thì bỏ qua
+    if (idDoc !== parsedData.idDoc) return;
 
-    console.log("idUsertmp ", idUsertmp, "idOwner ", idOwner);
-    // nếu là chủ phòng thì mới gửi content đi cho new client
-    if (idOwner == idUsertmp) {
-      console.log("xử lý gửi content");
-      sendContentToNewClient(idUsertmp);
+    // Chỉ chủ phòng mới gửi dữ liệu
+    if (props.ownerIdDocument === idUsertmp) {
+      console.log(`Xử lý gửi nội dung cho client mới (ID: ${idNewClient})`);
+      sendContentToNewClient(idNewClient);
     }
   });
   showCode.value = document.querySelector("#show-code");

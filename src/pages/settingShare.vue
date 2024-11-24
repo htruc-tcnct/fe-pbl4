@@ -130,32 +130,23 @@ const emailMessage = ref("");
 const selectedAccess = ref("Restricted");
 const selectedOption = ref("Viewer");
 const emailFormVisible = ref(false);
-watch(
-  () => props.idDoc,
-  async (newId, oldId) => {
-    if (newId && newId !== oldId) {
-      console.log(`idDoc changed from ${oldId} to ${newId}`);
-      await fetchDocumentInfo();
-    }
-  },
-  { immediate: true } // Gọi ngay lập tức khi component được mounted
-);
+
 // API Calls
-const fetchUserInfo = async () => {
-  try {
-    const response = await axios.get(
-      `${import.meta.env.VITE_SERVER_URL}/user-info`,
-      { withCredentials: true }
-    );
-    if (response.data) {
-      userName.value = response.data.name || "User";
-      avatarUrl.value =
-        response.data.avatar || "https://example.com/default-avatar.png";
-    }
-  } catch (error) {
-    console.error("Error fetching user info:", error);
-  }
-};
+// const fetchUserInfo = async () => {
+//   try {
+//     const response = await axios.get(
+//       `${import.meta.env.VITE_SERVER_URL}/user-info`,
+//       { withCredentials: true }
+//     );
+//     if (response.data) {
+//       userName.value = response.data.name || "User";
+//       avatarUrl.value =
+//         response.data.avatar || "https://example.com/default-avatar.png";
+//     }
+//   } catch (error) {
+//     console.error("Error fetching user info:", error);
+//   }
+// };
 const fetchDocumentInfo = async () => {
   try {
     if (!props.idDoc || props.idDoc === "") {
@@ -248,9 +239,19 @@ const CancelSendEmail = () => {
 
 // Lifecycle
 onMounted(async () => {
-  await fetchUserInfo();
+  // await fetchUserInfo();
   await fetchDocumentInfo();
 });
+watch(
+  () => props.idDoc,
+  async (newId, oldId) => {
+    if (newId && newId !== oldId) {
+      console.log(`idDoc changed from ${oldId} to ${newId}`);
+      await fetchDocumentInfo();
+    }
+  },
+  { immediate: true } // Gọi ngay lập tức khi component được mounted
+);
 </script>
 
 <style scoped>

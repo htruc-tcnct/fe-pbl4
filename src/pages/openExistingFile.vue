@@ -93,11 +93,6 @@ const onSubmit = async () => {
     const createdDocument = response.data.document;
     console.log("Document created successfully:", createdDocument);
 
-    // Điều hướng sang trang Text Editor với ID tài liệu
-    router.push({
-      path: `/documents/detail/${createdDocument._id}`,
-    });
-
     emit("documentCreated", createdDocument); // Phát sự kiện khi tài liệu được tạo
     emit("close"); // Đóng modal
   } catch (error) {

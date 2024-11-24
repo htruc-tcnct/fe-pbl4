@@ -38,7 +38,7 @@ socket.on("connect", () => {
       }
     });
   } else {
-    console.error("Invalid data in localStorage:", { idOw, documentId });
+    // console.error("Invalid data in localStorage:", { idOw, documentId });
   }
 });
 

@@ -217,6 +217,7 @@
 import { ref, onMounted, nextTick } from "vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
+
 import { useStore } from "vuex";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
@@ -250,6 +251,8 @@ const errorMessageJoin = ref("");
 const joinCode = ref("");
 let ownerIdDocument = ref("");
 const joinDocument = async () => {
+  localStorage.removeItem("idOwn");
+  localStorage.removeItem("documentId");
   if (!joinCode.value) {
     errorMessageJoin.value = "Please enter a join code.";
     return;
@@ -262,7 +265,8 @@ const joinDocument = async () => {
       }
     );
     const documentID = response.data.document._id;
-    console.log(">>>>>>>>>>>>>>>: ", response.data);
+
+    console.log(">>>>>>>>>>>>>>>: du lieu cua document:: ", response.data);
     ownerIdDocument.value = response.data.document.documentOwnerID;
     router.push({
       path: `/documents/detail/${documentID}?ownerIdDocument=${ownerIdDocument.value}`,
@@ -284,8 +288,15 @@ const openFile = () => {
   document.getElementById("fileInput").click();
 };
 const goToTextEditor = (documentId) => {
+  const idOw = localStorage.getItem("idUser");
+  const idUserAndIdDocument = {
+    idOwner: idOw,
+    idDoc: documentId,
+  };
+  localStorage.setItem("idOwn", idUserAndIdDocument.idOwner);
+  localStorage.setItem("documentId", idUserAndIdDocument.idDoc);
   router.push({
-    path: `/documents/detail/${documentId}`,
+    path: `/documents/detail/${documentId}?ownerIdDocument=${idOw.value}`,
     query: {
       ownerIdDocument: ownerIdDocument.value,
     },

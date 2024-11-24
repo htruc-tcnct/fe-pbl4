@@ -18,7 +18,7 @@ let documentDetail = ref("");
 var idUser = localStorage.getItem("idUser"); // tạm để test
 const props = defineProps(["id", "ownerIdDocument"]);
 var idDoc = props.id;
-
+let documentFull = ref(null);
 const fetchDocumentInfor = async () => {
   try {
     const result = await axios.get(
@@ -48,7 +48,14 @@ const fetchGoToDocumentInfor = async () => {
     console.error("Lỗi khi lấy thông tin tài liệu:", error);
   }
 };
-
+onMounted(() => {
+  fetchGoToDocumentInfor();
+  fetchDocumentInfor();
+  const idUser = localStorage.getItem("idUser");
+  console.log(":::::::::::::::::::::::::", props.ownerIdDocument);
+  console.log(":::::::::::::::::::::::::", idUser);
+  copyRoomID();
+});
 const copyRoomID = () => {
   if (documentDetail.value) {
     navigator.clipboard
@@ -61,12 +68,7 @@ const copyRoomID = () => {
     console.warn("Không có nội dung để sao chép.");
   }
 };
-onMounted(() => {
-  downloadDocument(props.id);
-  fetchGoToDocumentInfor();
-  fetchDocumentInfor();
-  copyRoomID();
-});
+
 const openFile = () => {
   document.getElementById("fileInput").click();
 };
@@ -119,7 +121,7 @@ const handleFileInput = async (event) => {
       const charData = { id: div.id }; // Dữ liệu ký tự để xóa
       const idUserAndIdDocument = {
         idUser: idUser,
-        idDoc: idDoc,
+        idDoc: props.id,
       };
       charData.UserAndDoc = idUserAndIdDocument;
       socket.emit("delete-one", JSON.stringify(charData)); // Gửi yêu cầu xóa qua socket
@@ -2714,14 +2716,24 @@ function sendContentToNewClient(idNewClient) {
   });
 }
 onMounted(() => {
+  if (idUser === props.ownerIdDocument) {
+    downloadDocument(props.id);
+  }
   socket.connect();
+  // localStorage.removeItem("idOwn");
+  // localStorage.removeItem("documentId");
+  // const idUserAndIdDocument = {
+  //   idUser: idUser,
+  //   idDoc: idDoc,
+  // };
+  // socket.emit("request-priority", JSON.stringify(idUserAndIdDocument));
   socket.on("give-priority", (doUuTien) => {
     pri = doUuTien;
+
     // gán tạm idUser và idDoc là pri để test
     idUser = localStorage.getItem("idUser");
     idDoc = props.id;
     console.log(`độ ưu tiên là ${pri} idUser ${idUser}`);
-
     // Tạo đối tượng idUserAndIdDocument sau khi đã nhận được giá trị
     const idUserAndIdDocument = {
       idUser: idUser,
@@ -2796,7 +2808,7 @@ onMounted(() => {
 
     console.log("idUsertmp ", idUsertmp, "idOwner ", idOwner);
     // nếu là chủ phòng thì mới gửi content đi cho new client
-    if (idOwner == idUser) {
+    if (idOwner == idUsertmp) {
       console.log("xử lý gửi content");
       sendContentToNewClient(idUsertmp);
     }

@@ -2211,16 +2211,70 @@ setInterval(() => {
 }, 30000);
 
 // xử lý Ctrl C, Ctrl V
-
+let copiedHTML = [];
 function controlPlusCHandling() {
-  const selectedIds = getSelectedDivIds();
-  getDivContentsByIds(selectedIds); // Gọi hàm và lưu kết quả vào arrContentForCtrlV
+  const selectedIds = getSelectedDivIds(); // Lấy danh sách ID
+  arrContentForCtrlV = []; // Làm rỗng mảng lưu trữ
+
+  selectedIds.forEach((id) => {
+    const div = document.getElementById(id);
+    if (div) {
+      arrContentForCtrlV.push({
+        id: id, // Lưu ID
+        content: div.innerHTML, // Lưu nội dung HTML bên trong
+        styles: div.style.cssText, // Lưu các style inline
+      });
+    }
+  });
+
+  console.log("Nội dung đã sao chép:", arrContentForCtrlV);
 }
 
 function controlPlusVHandling() {
-  console.log(arrContentForCtrlV);
-  simulateKeydownForArray();
+  if (!arrContentForCtrlV || arrContentForCtrlV.length === 0) {
+    console.log("Không có nội dung nào để dán.");
+    return;
+  }
+
+  const targetElement = document.getElementById("content"); // Vùng đích dán
+  if (!targetElement) {
+    console.log("Không tìm thấy vùng dán nội dung.");
+    return;
+  }
+
+  arrContentForCtrlV.forEach((item) => {
+    // Tạo một <div> mới để chứa nội dung dán
+    const newDiv = document.createElement("div");
+    newDiv.id = `copied-${item.id}-${Date.now()}`; // Tạo ID mới để tránh xung đột
+    newDiv.innerHTML = item.content; // Dán nội dung HTML
+    newDiv.style.cssText = item.styles; // Áp dụng style đã lưu
+
+    // Thêm <div> mới vào cuối cùng của `targetElement`
+    targetElement.appendChild(newDiv);
+  });
+
+  console.log("Nội dung đã dán:", arrContentForCtrlV);
+
+  // Đưa con trỏ vào cuối <div> cuối cùng
+  const lastDiv = targetElement.lastElementChild;
+  setCaretToEnd(lastDiv);
 }
+
+function setCaretToEnd(targetElement) {
+  const range = document.createRange(); // Tạo range mới
+  const selection = window.getSelection(); // Lấy đối tượng Selection
+
+  // Đặt range tại cuối phần tử
+  range.selectNodeContents(targetElement);
+  range.collapse(false); // Đưa range về cuối nội dung
+
+  // Xóa các vùng chọn cũ và thêm range mới
+  selection.removeAllRanges();
+  selection.addRange(range);
+
+  console.log("Con trỏ đã được đưa về cuối phần tử:", targetElement.id);
+}
+
 
 function getDivContentsByIds(selectedIds) {
   arrContentForCtrlV.splice(0, arrContentForCtrlV.length); //làm trống mảng
@@ -2773,13 +2827,13 @@ onBeforeUnmount(() => {
 <template>
   <div class="container-fluid p-0">
     <div class="container-fluid">
-   
-      <div class="toolbar p-3 bg-gray border rounded">
+      
+      <div class="toolbar p-3 "style="background-color: #2E2E2E;">
         <div
           class="d-flex justify-content-start align-items-center mb-2 position-relative"
         >
         <img
-            src="../assets/logo.png"
+            src="../assets/logo1.png"
             alt="Logo"
             style="height: 50px; margin-right: 10px;"
           />
@@ -2791,12 +2845,13 @@ onBeforeUnmount(() => {
           <!-- File Dropdown -->
           <div class="dropdown me-2">
             <button
-              class="btn btn-outline-secondary dropdown-toggle me-3"
+              class="btn btn-secondary dropdown-toggle me-3"
               type="button"
               id="fileDropdown"
               data-bs-toggle="dropdown"
               aria-expanded="false"
               style="width: 80px; height: 40px"
+              title="Tuỳ chọn file"
             >
               File
             </button>
@@ -2822,10 +2877,11 @@ onBeforeUnmount(() => {
           <!-- Font size Dropdown -->
           <div class="dropdown me-2">
             <button
-              class="btn btn-outline-secondary dropdown-toggle"
+              class="btn btn-secondary dropdown-toggle"
               type="button"
               id="fontSizeDropdown"
               data-bs-toggle="dropdown"
+              title="Cỡ chữ"
               aria-expanded="false"
             >
               Font size
@@ -2887,14 +2943,15 @@ onBeforeUnmount(() => {
             </ul>
           </div>
           <div class="dropdown position-absolute top-0 end-0 custom-dropdown">
-  <button
-    class="btn custom-share-btn dropdown-toggle"
-    type="button"
-    data-bs-toggle="dropdown"
-    aria-expanded="false"
-  >
-    Share
-  </button>
+          <button
+  class="btn custom-share-btn dropdown-toggle"
+  type="button"
+  data-bs-toggle="dropdown"
+  aria-expanded="false"
+>
+  Share
+</button>
+
   <ul class="dropdown-menu dropdown-menu-dark">
     <li><a class="dropdown-item active" href="#">Copy Id</a></li>
     <li><a class="dropdown-item" href="#">Email</a></li>
@@ -2902,48 +2959,54 @@ onBeforeUnmount(() => {
 </div>
           <!-- Color Picker -->
         </div>
-        <hr style=""/>
-        <div class="d-flex justify-content-start align-items-center gap-3 custom-div ">
+        <hr style="border: none; border-top: 3px solid white; margin: 20px 0;" />        <div class="d-flex justify-content-start align-items-center gap-3 custom-div ">
   <!-- Toolbar buttons -->
   <button
     class="btn btn-outline-secondary"
     @click="makeSelectedDivsBold"
+    title="In đậm"
   >
     <i class="fas fa-bold"></i>
   </button>
   <button
     class="btn btn-outline-secondary"
     @click="makeSelectedDivsItalic"
+    title="In nghiêng"
   >
     <i class="fas fa-italic"></i>
   </button>
   <button
     class="btn btn-outline-secondary"
     @click="makeSelectedDivsUnderLined"
+    title="Gạch dưới"
   >
     <i class="fas fa-underline"></i>
   </button>
   <button
     class="btn btn-outline-secondary"
     @click="makeSelectedDivsStrikethrough"
+    title="Gạch ngang"
   >
     <i class="fas fa-strikethrough"></i>
   </button>
   <button
     class="btn btn-outline-secondary"
     @click="makeSelectedDivsAlign('left')"
+    title="Căn trái"
   >
     <i class="fas fa-align-left"></i>
   </button>
   <button
     class="btn btn-outline-secondary"
     @click="makeSelectedDivsAlign('center')"
+    title="Căn giữa"
   >
     <i class="fas fa-align-center"></i>
   </button>
   <button
     class="btn btn-outline-secondary"
     @click="makeSelectedDivsAlign('right')"
+    title="Căn phải"
   >
     <i class="fas fa-align-right"></i>
   </button>
@@ -2959,7 +3022,7 @@ onBeforeUnmount(() => {
       class="form-control form-control-color"
       @input="handleColorChange"
       value="#000000"
-      title="Choose text color"
+      title="Màu chữ"
       style="height: 29px; width: 29px"
     />
   </div>
@@ -2975,22 +3038,25 @@ onBeforeUnmount(() => {
       class="form-control form-control-color"
       @input="handleBackGroundColorChange"
       value="#000000"
-      title="Choose background color"
+      title="Màu nền chữ"
       style="height: 29px; width: 29px"
     />
           </div>
         </div>
       </div>
+      <div style="background-color: #2E2E2E; padding: 16px;">
       <div
         id="content"
-        class="border mt-3 p-3 rounded"
+        class="border   rounded"
         contenteditable="true"
         spellcheck="false"
         style="min-height: 200px; width: 1092px"
         @keydown="XuLyNut"
       ></div>
-    </div>
+      </div>
+    
   </div>
+</div>
 </template>
 
 <style scoped>
@@ -2999,18 +3065,35 @@ onBeforeUnmount(() => {
   margin: 0;
 }
 :deep(#content) {
-  width: 1092px; /* Increase width to 90% */
-  height: 80vh; /* Increase height to 80% of viewport height */
-  margin: 0 auto;
-  border: 2px solid #ccc;
-  padding: 10px;
-  box-sizing: border-box;
-  overflow: auto;
+  width: 1092px; /* Đặt chiều rộng */
+  height: calc(1092px * 1.414); /* Chiều cao tương ứng với tỉ lệ A4 */
+  margin: 0 auto; /* Căn giữa ngang */
+  border: 2px solid #ccc; /* Viền nhạt */
+  padding: 50px; /* Padding để giống khổ giấy A4 */
+  box-sizing: border-box; /* Bao gồm padding và border trong kích thước */
+  overflow: auto; /* Hiển thị cuộn nếu nội dung vượt quá */
+  background-color: white; /* Nền trắng giống giấy */
 }
 .container-fluid{
   padding: 0;
   margin: 0%;
 }
+.custom-share-btn {
+  background-color: #4db465; /* Xanh lá cây nhạt */
+  color: #ffffff; /* Màu chữ trắng */
+  border: 2px solid #197430; /* Viền xanh đậm hơn */
+  border-radius: 5px; /* Góc bo tròn */
+  padding: 10px 20px; /* Tăng kích thước nút */
+  font-weight: bold; /* Chữ in đậm */
+  transition: background-color 0.3s ease; /* Hiệu ứng hover */
+}
+
+.custom-share-btn:hover {
+  background-color: #1b8034; /* Tông xanh đậm hơn khi hover */
+  border-color: #4e9957; /* Viền đậm hơn */
+}
+
+
 .btn {
     transition: background-color 0.3s, color 0.3s, border-color 0.3s;
   }
@@ -3029,18 +3112,9 @@ input[type="color"] {
   background: none;
 }
 
-.custom-share-btn {
-    background-color: #000; /* Màu nền đen */
-    color: #fff; /* Màu chữ trắng */
-    border: 1px solid #000; /* Đường viền đen */
-    transition: background-color 0.3s, color 0.3s, border-color 0.3s;
-  }
 
-  .custom-share-btn:hover {
-    background-color: #fff; /* Màu nền trắng khi di chuột */
-    color: #000; /* Màu chữ đen khi di chuột */
-    border-color: #000; /* Đường viền vẫn giữ màu đen */
-  }
+
+
   .custom-dropdown {
     width: 100px; /* Chiều rộng của dropdown */
     height: auto; /* Đặt chiều cao tự động (có thể cố định nếu cần) */
@@ -3055,4 +3129,5 @@ input[type="color"] {
     box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Thêm bóng đổ nhẹ */
     transition: all 0.3s ease-in-out; /* Hiệu ứng khi thay đổi */
   }
+
 </style>

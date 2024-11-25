@@ -2802,6 +2802,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   socket.disconnect();
+  // contentDiv.value.innerHTML = "";
 });
 </script>
 

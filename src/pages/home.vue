@@ -251,9 +251,6 @@ const errorMessageJoin = ref("");
 const joinCode = ref("");
 let ownerIdDocument = ref("");
 const joinDocument = async () => {
-  localStorage.removeItem("idOwn");
-  localStorage.removeItem("documentId");
-
   const trimmedJoinCode = joinCode.value.trim();
   if (!trimmedJoinCode) {
     errorMessageJoin.value = "Please enter a valid join code.";

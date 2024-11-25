@@ -37,9 +37,6 @@ socket.on("connect", () => {
     socket.emit("register", JSON.stringify(payload), (response) => {
       console.log("response ", response);
       console.log("Payload successfully registered:", payload);
-      // Xóa giá trị khỏi localStorage chỉ khi server xác nhận thành công
-      localStorage.removeItem("idOwn");
-      localStorage.removeItem("documentId");
 
       socket.emit("request-priority", JSON.stringify(idUserAndIdDocument));
     });

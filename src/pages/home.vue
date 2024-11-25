@@ -295,6 +295,7 @@ const goToTextEditor = (documentId) => {
   };
   localStorage.setItem("idOwn", idUserAndIdDocument.idOwner);
   localStorage.setItem("documentId", idUserAndIdDocument.idDoc);
+
   router.push({
     path: `/documents/detail/${documentId}?ownerIdDocument=${idOw.value}`,
     query: {

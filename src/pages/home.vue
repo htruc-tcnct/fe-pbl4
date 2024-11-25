@@ -251,39 +251,55 @@ const errorMessageJoin = ref("");
 const joinCode = ref("");
 let ownerIdDocument = ref("");
 const joinDocument = async () => {
-  localStorage.removeItem("idOwn");
-  localStorage.removeItem("documentId");
-  if (!joinCode.value) {
-    errorMessageJoin.value = "Please enter a join code.";
+  const trimmedJoinCode = joinCode.value.trim();
+  if (!trimmedJoinCode) {
+    errorMessageJoin.value = "Please enter a valid join code.";
     return;
   }
+
   try {
     const response = await axios.get(
-      `${import.meta.env.VITE_SERVER_URL}/documents/share/${joinCode.value}`,
+      `${import.meta.env.VITE_SERVER_URL}/documents/share/${trimmedJoinCode}`,
       {
         withCredentials: true,
       }
     );
-    const documentID = response.data.document._id;
 
-    console.log(">>>>>>>>>>>>>>>: du lieu cua document:: ", response.data);
-    ownerIdDocument.value = response.data.document.documentOwnerID;
+    const { _id: documentID, documentOwnerID: ownerId } =
+      response.data.document;
+
+    localStorage.setItem("idOwn", ownerId);
+    localStorage.setItem("documentId", documentID);
+    ownerIdDocument.value = ownerId;
+
     router.push({
-      path: `/documents/detail/${documentID}?ownerIdDocument=${ownerIdDocument.value}`,
+      path: `/documents/detail/${documentID}`,
       query: {
-        ownerIdDocument: ownerIdDocument.value,
+        ownerIdDocument: ownerId,
       },
     });
   } catch (error) {
-    if (error.response && error.response.status === 404) {
-      errorMessageJoin.value = "Document not found or not shared.";
-    } else if (error.response && error.response.status === 403) {
-      errorMessageJoin.value = "You do not have access to this document.";
+    if (error.response) {
+      switch (error.response.status) {
+        case 404:
+          errorMessageJoin.value = "Document not found or not shared.";
+          break;
+        case 403:
+          errorMessageJoin.value = "You do not have access to this document.";
+          break;
+        default:
+          errorMessageJoin.value = "An error occurred. Please try again.";
+      }
     } else {
       errorMessageJoin.value = "An error occurred. Please try again.";
     }
+
+    if (import.meta.env.DEV) {
+      console.error("API Error: ", error);
+    }
   }
 };
+
 const openFile = () => {
   document.getElementById("fileInput").click();
 };
@@ -295,6 +311,7 @@ const goToTextEditor = (documentId) => {
   };
   localStorage.setItem("idOwn", idUserAndIdDocument.idOwner);
   localStorage.setItem("documentId", idUserAndIdDocument.idDoc);
+
   router.push({
     path: `/documents/detail/${documentId}?ownerIdDocument=${idOw.value}`,
     query: {

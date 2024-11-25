@@ -50,7 +50,7 @@
         <div class="general-access mb-3">
           <h5>General access</h5>
           <div class="access-option mb-1">
-            <div class="row border border-success p-1 border-opacity-10">
+            <div class="row  border-success p-1 border-opacity-10">
               <div class="col-9 d-flex align-items-center">
                 <i
                   v-if="selectedAccess === 'Restricted'"
@@ -259,7 +259,7 @@ onMounted(async () => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.7); /* Màu nền tối hơn */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -267,43 +267,141 @@ onMounted(async () => {
 }
 
 .modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  width: 460px;
+  background: #ffffff; /* Màu trắng làm nền chính */
+  padding: 25px;
+  border-radius: 10px;
+  width: 500px;
   max-width: 90%;
   text-align: left;
   position: relative;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .btn-close {
   position: absolute;
-  top: 10px;
-  right: 10px;
+  top: 15px;
+  right: 15px;
   border: none;
   background: transparent;
-  font-size: 20px;
+  font-size: 24px;
+  color: #333; /* Màu đen nhạt */
   cursor: pointer;
 }
 
+.btn-close:hover {
+  color: #000; /* Màu đen đậm khi hover */
+}
+
 .modal-title {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: bold;
   margin-bottom: 20px;
+  color: #000; /* Tiêu đề đen đậm */
 }
 
 .avatar {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
+  border: 2px solid #000; /* Viền đen đậm cho avatar */
 }
 
 .access-role {
   font-size: 14px;
-  color: #555;
+  color: #777; /* Màu xám cho vai trò */
 }
 
-.form-select {
-  width: auto;
+.form-group input,
+textarea {
+  border: 1px solid #ddd; /* Viền xám nhạt */
+  border-radius: 5px;
+  padding: 10px;
+  font-size: 14px;
+  color: #333; /* Màu đen nhạt cho chữ */
 }
+
+textarea {
+  resize: none; /* Tắt resize của textarea */
+}
+
+textarea:focus,
+input:focus {
+  outline: none;
+  border: 1px solid #333; /* Đổi viền sang đen khi focus */
+}
+
+button {
+  border-radius: 5px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.btn-primary {
+  background-color: #000; /* Nút đen */
+  color: #fff; /* Chữ trắng */
+  border: 1px solid #000;
+}
+
+.btn-primary:hover {
+  background-color: #333; /* Nút đen nhạt hơn khi hover */
+}
+
+.btn-light {
+  background-color: #f2f2f2; /* Màu xám nhạt */
+  color: #333; /* Màu chữ đen nhạt */
+  border: 1px solid #ddd;
+}
+
+.btn-light:hover {
+  background-color: #e0e0e0; /* Xám đậm hơn khi hover */
+}
+
+.access-info .access-user {
+  border-bottom: 1px solid #ddd; /* Viền xám nhạt giữa các user */
+  padding: 8px 0;
+}
+
+.general-access h5 {
+  color: #333; /* Màu tiêu đề đen nhạt */
+  font-size: 16px;
+}
+
+.access-option {
+  background-color: #fafafa; /* Nền xám rất nhạt */
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.access-option .form-select {
+  border: none;
+  font-size: 14px;
+  color: #555; /* Màu xám trung tính */
+}
+
+.access-option .form-select:hover {
+  background-color: #f2f2f2; /* Đổi màu nền khi hover */
+}
+
+p.text-muted {
+  font-size: 12px;
+  color: #666; /* Màu xám cho đoạn text nhỏ */
+}
+
+button.btn-outline-primary {
+  color: #000; /* Nút đen viền trắng */
+  border: 1px solid #000;
+  background-color: transparent;
+}
+
+button.btn-outline-primary:hover {
+  background-color: #000; /* Nền đen khi hover */
+  color: #fff; /* Chữ trắng khi hover */
+}
+
+button.rounded-pill {
+  border-radius: 50px; /* Nút bo tròn */
+  padding: 8px 16px;
+}
+
 </style>

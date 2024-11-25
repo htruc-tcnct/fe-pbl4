@@ -16,11 +16,11 @@
 
       <div
         class="input-group d-flex justify-content-between"
-        style="max-width: 600px"
+        style="max-width: 700px"
       >
       <input
     type="text"
-    class="form-control rounded-start-pill border-0 shadow-sm px-3"
+    class="form-control rounded-start-pill border-0 shadow-sm px-5"
     placeholder="Find your document"
     v-model="searchKeyword"
     
@@ -88,8 +88,8 @@
     </header>
     <SettingModal :visible="currentModal" @close="closeModal" />
 
-    <section class="join-section my-5 text-center">
-  <div class="input-group mx-auto join-group">
+    <section class="join-section my-5  text-center custom-join-section">
+  <div class="input-group mx-auto join-group custom-width">
     <input
       type="text"
       class="form-control join-code"
@@ -105,33 +105,33 @@
   </p>
 </section>
     <section class="assigned-activities">
-      <div class="row">
-        <div class="col-6 text-end">
-          <h2 class="mb-4">Assigned Activities</h2>
-        </div>
-        <div class="col-6 text-start">
-          <div class="dropdown">
-            <button
-              class="btn dropdown-toggle"
-              type="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="true"
-            >
-              <i class="fas fa-plus"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-dark">
-              <li @click="handleCreateNewDoc">
-                <a class="dropdown-item active" href="#">New</a>
-              </li>
-              <li @click="handleOpenExistingFile">
-                <a class="dropdown-item" href="#">Open exist file</a>
-              </li>
-            </ul>
-            <input
-              type="file"
-              id="fileInput"
-              style="display: none"
-              accept=".docx"
+      <div class="row ">
+    <div class="col-6 text-end">
+      <h2 class="mb-4">Assigned Activities</h2>
+    </div>
+    <div class="col-6 text-start">
+      <div class="dropdown">
+        <button
+          class="btn dropdown-toggle"
+          type="button"
+          data-bs-toggle="dropdown"
+          aria-expanded="true"
+        >
+          <i class="fas fa-plus"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-dark">
+          <li @click="handleCreateNewDoc">
+            <a class="dropdown-item active" href="#">New</a>
+          </li>
+          <li @click="handleOpenExistingFile">
+            <a class="dropdown-item" href="#">Open exist file</a>
+          </li>
+        </ul>
+        <input
+          type="file"
+          id="fileInput"
+          style="display: none"
+          accept=".docx"
             />
           </div>
         </div>
@@ -153,6 +153,7 @@
             v-model="document.documentTitle"
             :readonly="!document.isEditable"
             class="text-light bg-dark border-0 title text-center"
+            style="padding: 0;"
             :ref="(el) => (inputRefs[index] = el)"
             @blur="saveDocument(document)"
             @focus="$event.target.select()"
@@ -162,31 +163,25 @@
       </div>
 
       <div
-        v-if="contextMenuVisible"
-        :style="{ top: `${contextMenuY}px`, left: `${contextMenuX}px` }"
-        class="context-menu"
-      >
-        <ul class="position-relative">
-          <li @click="handleSettingShare(selectedDocument)">
-            <i
-              class="fa-solid fa-share position-absolute top-0 start-0 ms-2 mt-2"
-            ></i>
-            Setting Share
-          </li>
-          <li @click="handleDelete(selectedDocument)">
-            <i
-              class="fa-regular fa-trash-can position-absolute top-50 start-0 translate-middle-y ms-2"
-            ></i>
-            Delete
-          </li>
-          <li @click="toggleEdit(selectedDocument)">
-            <i
-              class="fa-solid fa-highlighter position-absolute bottom-0 start-0 mb-2 ms-2"
-            ></i>
-            Change Name
-          </li>
-        </ul>
-      </div>
+  v-if="contextMenuVisible"
+  :style="{ top: `${contextMenuY}px`, left: `${contextMenuX}px` }"
+  class="context-menu shadow"
+>
+  <ul>
+    <li @click="handleSettingShare(selectedDocument)">
+      <i class="fa-solid fa-share me-2"></i>
+      <span>Setting Share</span>
+    </li>
+    <li @click="handleDelete(selectedDocument)">
+      <i class="fa-regular fa-trash-can me-2"></i>
+      <span>Delete</span>
+    </li>
+    <li @click="toggleEdit(selectedDocument)">
+      <i class="fa-solid fa-highlighter me-2"></i>
+      <span>Change Name</span>
+    </li>
+  </ul>
+</div>
     </section>
     <settingShareModal
       v-if="idDocument && idDocument !== ''"
@@ -463,28 +458,57 @@ onMounted(async () => {
 <style scoped>
 .context-menu {
   position: absolute;
+  background: #fff; /* Màu nền trắng */
+  border: 1px solid #ddd; /* Viền xám nhạt */
+  border-radius: 8px; /* Bo góc */
+  padding: 8px 0;
+  width: 200px; /* Chiều rộng menu */
   z-index: 1000;
-  background-color: white;
-  border: 1px solid #ccc;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-  padding: 10px;
-  width: 200px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); /* Đổ bóng */
+  animation: fadeIn 0.2s ease-in-out; /* Hiệu ứng mờ */
+  cursor: pointer; /* Thay đổi con trỏ chuột thành chỉ mục */
 }
 
 .context-menu ul {
-  list-style-type: none;
+  list-style: none; /* Xóa ký hiệu trước các mục */
   padding: 0;
   margin: 0;
 }
 
-.context-menu ul li {
-  padding: 8px 12px;
+.context-menu li {
+  display: flex;
+  align-items: center; /* Căn giữa icon và text */
+  padding: 10px 16px; /* Khoảng cách giữa các mục */
+  font-size: 14px;
+  color: #333; /* Màu chữ đen nhạt */
   cursor: pointer;
+  transition: background-color 0.2s ease-in-out; /* Hiệu ứng hover */
 }
 
-.context-menu ul li:hover {
-  background-color: #f1f1f1;
+.context-menu li:hover {
+  background: #f8f9fa; /* Nền xám nhạt khi hover */
+  color: #000; /* Màu chữ đen đậm */
+}
+
+.context-menu i {
+  font-size: 16px; /* Kích thước biểu tượng */
+  color: #666; /* Màu biểu tượng */
+  transition: color 0.2s ease-in-out; /* Hiệu ứng hover cho biểu tượng */
+}
+
+.context-menu li:hover i {
+  color: #000; /* Màu biểu tượng khi hover */
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 .btn-search {
@@ -567,7 +591,7 @@ input.text-light.bg-dark.border-0:hover {
   border: none;
   padding: 0;
   outline: none;
-  transition: box-shadow 0.3s ease;
+  transition: box-shadow 0.2s ease;
 }
 
 .btn-account:hover {
@@ -680,7 +704,7 @@ input.text-light.bg-dark.border-0:hover {
   font-size: 16px;
   font-weight: bold;
   border-radius: 0 50px 50px 0;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
 }
 
 .btn-join:hover {
@@ -693,5 +717,69 @@ input.text-light.bg-dark.border-0:hover {
   font-size: 14px;
   font-style: italic;
 }
+/* Hiệu ứng hover trên toàn bộ button (ô văn bản) */
+.btn-document {
+  cursor: pointer; /* Con trỏ chỉ mục */
+  transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease; /* Thời gian và kiểu chuyển đổi */
+}
 
+.btn-document:hover {
+  transform: scale(1.05); /* Tăng kích thước nhẹ khi hover */
+  background-color: #333; /* Đổi nền thành màu đen đậm hơn */
+  border-color: #555; /* Đổi màu viền */
+}
+
+/* Hiệu ứng hover và focus trên input (khung tên văn bản) */
+.title {
+  cursor: pointer; /* Con trỏ chỉ mục khi hover */
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease; /* Đồng bộ thời gian và kiểu chuyển đổi */
+  background-color: transparent; /* Nền trong suốt */
+}
+
+.title:focus {
+  cursor: text; /* Con trỏ nhập liệu khi focus */
+  outline: none; /* Loại bỏ viền focus mặc định */
+  background-color: #222; /* Nền đen nhạt khi focus */
+  border-bottom: 2px solid #ccc; /* Viền dưới khi focus */
+  color: #fff; /* Màu chữ trắng khi focus */
+}
+
+/* Đảm bảo toàn bộ phần input và button đồng bộ */
+.btn-document:hover .title {
+  background-color: #333; /* Đổi màu nền của input khi hover đồng bộ với button */
+  color: #fff; /* Màu chữ */
+}
+.assigned-activities .dropdown-toggle {
+  font-size: 18px; /* Kích thước biểu tượng vừa phải */
+  width: 40px; /* Kích thước nút (chiều rộng) */
+  height: 40px; /* Kích thước nút (chiều cao) */
+  background-color: #000; /* Nền đen */
+  color: #fff; /* Chữ trắng */
+  border: none; /* Xóa viền mặc định */
+  border-radius: 50%; /* Bo tròn nút */
+  display: flex; /* Dùng Flexbox để căn giữa biểu tượng */
+  align-items: center; /* Căn giữa dọc */
+  justify-content: center; /* Căn giữa ngang */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Đổ bóng nhẹ */
+  transition: transform 0.2s ease, background-color 0.2s ease; /* Hiệu ứng */
+}
+
+/* Hiệu ứng hover cho nút dấu + */
+.assigned-activities .dropdown-toggle:hover {
+  background-color: #333; /* Màu nền sáng hơn khi hover */
+  transform: scale(1.1); /* Phóng to nhẹ khi hover */
+}
+
+.custom-width {
+
+  width: 500px; /* Đảm bảo div co giãn theo màn hình */
+}
+.custom-join-section {
+  max-width: 600px; /* Đặt chiều rộng tối đa */
+  margin:auto ;
+  
+}
+.container-fluid{
+  padding: 0;
+}
 </style>

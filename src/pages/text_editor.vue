@@ -3112,9 +3112,6 @@ input[type="color"] {
   background: none;
 }
 
-
-
-
   .custom-dropdown {
     width: 100px; /* Chiều rộng của dropdown */
     height: auto; /* Đặt chiều cao tự động (có thể cố định nếu cần) */

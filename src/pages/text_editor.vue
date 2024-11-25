@@ -2693,15 +2693,14 @@ function sendContentToNewClient(idNewClient) {
 
 onMounted(() => {
   socket.connect();
-
+  // localStorage.removeItem("idOwn");
+  // localStorage.removeItem("documentId");
+  // const idUserAndIdDocument = {
   if (localStorage.getItem("idUser") === props.ownerIdDocument) {
     fetchGoToDocumentInfor();
 
     downloadDocument(props.id);
   }
-  // localStorage.removeItem("idOwn");
-  // localStorage.removeItem("documentId");
-  // const idUserAndIdDocument = {
   //   idUser: idUser,
   //   idDoc: idDoc,
   // };
@@ -2718,7 +2717,7 @@ onMounted(() => {
       idDoc: idDoc,
       idOwner: props.ownerIdDocument,
     };
-    console.log("idUserAndIdDocument  ", idUserAndIdDocument);
+    console.log("idUserAndIdDocument  ", idUserAndIdDocument, " pri ", pri);
     // Gửi yêu cầu sau khi nhận đủ thông tin
     socket.emit("request-edited-content", JSON.stringify(idUserAndIdDocument));
   });

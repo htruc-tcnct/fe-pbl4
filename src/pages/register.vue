@@ -169,7 +169,7 @@ onMounted(() => {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(0, 0, 0, 0.7); /* Nền tối mờ */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -178,35 +178,103 @@ onMounted(() => {
 
 /* Modal container */
 .modal-container {
-  background-color: #f3f7f9;
-  padding: 20px;
+  background-color: #fff; /* Nền trắng */
+  padding: 20px 30px;
   border-radius: 10px;
   width: 400px;
   position: relative;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3); /* Đổ bóng mềm */
 }
 
 /* Close button */
 .close {
   background: none;
   border: none;
-  color: white;
+  color: #000; /* Nút đóng màu đen */
   font-size: 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  position: absolute;
+  top: 10px;
+  right: 15px;
 }
 
-/* Modal body styling */
+.close:hover {
+  color: #555; /* Đổi màu khi hover */
+}
+
+/* Modal title */
+.modal-title {
+  font-size: 1.8rem;
+  color: #000; /* Màu tiêu đề đen */
+  margin-bottom: 20px;
+}
+
+/* Input styling */
 .modal-body input {
-  background-color: #2f3336;
-  color: white;
-  border: 1px solid #444;
+  background-color: #f8f9fa; /* Màu nền xám nhạt */
+  color: #000; /* Chữ đen */
+  border: 1px solid #ddd; /* Viền xám nhạt */
+  border-radius: 5px;
+  padding: 10px;
+  width: 100%;
+  margin-bottom: 10px;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
+}
+
+.modal-body input:focus {
+  outline: none;
+  border-color: #000; /* Viền đen khi focus */
+  background-color: #fff; /* Nền trắng */
+}
+
+/* Error message styling */
+.modal-body p {
+  color: #d9534f; /* Màu đỏ cho thông báo lỗi */
+  font-size: 0.9rem;
   margin-top: 10px;
 }
 
+/* Button styling */
+.btn-primary {
+  background-color: #000; /* Nền đen */
+  color: #fff; /* Chữ trắng */
+  border: 1px solid #000; /* Viền đen */
+  border-radius: 5px;
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.btn-primary:hover {
+  background-color: #333; /* Nền xám đậm khi hover */
+  color: #fff;
+}
+
+/* Link styling */
 .forgot-password-link {
+  color: #555; /* Màu xám nhạt */
+  font-size: 0.9rem;
   transition: color 0.3s ease, text-decoration 0.3s ease;
 }
 
 .forgot-password-link:hover {
-  text-decoration: underline !important;
-  color: #0056b3 !important;
+  text-decoration: underline;
+  color: #000; /* Màu đen khi hover */
+}
+
+/* Additional spacing for the button container */
+.modal-body .py-2 {
+  text-align: right; /* Căn phải cho nút */
+}
+
+.modal-body .py-2 .btn {
+  margin-top: 20px;
+}
+
+/* Animation styling (optional) */
+[data-aos="flip-right"] {
+  transform-origin: center;
 }
 </style>

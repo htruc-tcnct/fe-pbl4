@@ -9,30 +9,20 @@
         class="modal-container"
         data-aos="flip-left"
         data-aos-easing="ease-out-cubic"
-        data-aos-duration="700"
+        data-aos-duration="1000"
       >
         <div class="modal-header">
-          <button style="color: #000" class="close mb-5" @click="closeModal">
+          <button style="color: #000" class="close" @click="closeModal">
             &times;
           </button>
           <h2 class="modal-title text-center">Sign in</h2>
         </div>
 
-        <div
-          class="modal-body"
-          data-aos="flip-left"
-          data-aos-easing="ease-out-cubic"
-          data-aos-duration="1000"
-        >
-          <div class="row px-3">
+        <div class="modal-body">
+          <div class="row px-3 mb-4">
             <button
               @click="loginWithGG"
               class="btn btn-block btn-social btn-google py-2"
-              style="
-                background-color: #f4f1ee;
-                color: #000;
-                margin-bottom: 15px;
-              "
             >
               <img
                 src="../assets/gg.png"
@@ -42,7 +32,7 @@
             </button>
           </div>
 
-          <div class="text-center">
+          <div class="text-center my-3">
             <hr />
             <span>or</span>
             <hr />
@@ -56,49 +46,51 @@
               v-model="formData.email"
               autocomplete="email"
             />
-            <div class="input-group">
+            <div class="input-group my-2">
               <input
-                class="form-control bg-light text-dark my-2"
                 :type="showPassword ? 'text' : 'password'"
+                class="form-control bg-light text-dark"
                 v-model="formData.password"
-                autocomplete="current-password"
                 placeholder="Enter your password"
+                autocomplete="current-password"
               />
-              <i
-                class="icon my-4 px-3"
-                :class="
-                  showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'
-                "
+              <span
+                class="password-toggle-icon"
                 @click="showPassword = !showPassword"
-              ></i>
+              >
+                <i
+                  :class="
+                    showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'
+                  "
+                ></i>
+              </span>
             </div>
 
             <!-- Display error message if any -->
-            <div v-if="errorMessage">
-              <hr />
+            <div v-if="errorMessage" class="error-message">
               <p>{{ errorMessage }}</p>
             </div>
 
-            <div class="py-2">
+            <div class="py-3">
               <button
                 type="submit"
-                class="btn btn-primary px-5 position-absolute bottom-10 end-0"
+                class="btn btn-primary px-5 d-block mx-auto"
               >
                 Login
               </button>
             </div>
           </div>
 
-          <div class="text-center mt-3 py-3">
+          <div class="text-center mt-3">
             <a
               href="#"
-              class="text-decoration-none text-danger forgot-password-link"
+              class="text-decoration-none forgot-password-link"
               @click.prevent="goToForgotPassword"
               >Forgot password?</a
             >
           </div>
 
-          <div class="text-center">
+          <div class="text-center mt-3">
             <p>
               Don't have an account?
               <a href="#" @click="switchToRegister">Sign up</a>
@@ -109,7 +101,6 @@
     </div>
   </form>
 </template>
-
 <script setup>
 import { defineProps, defineEmits, ref, reactive, onMounted } from "vue";
 import axios from "axios";
@@ -192,13 +183,14 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* Modal overlay */
 .modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(0, 0, 0, 0.7); /* Nền đen mờ */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -207,10 +199,11 @@ onMounted(() => {
 
 /* Modal container */
 .modal-container {
-  background-color: #f3f7f9;
-  padding: 20px;
+  background-color: #fff; /* Nền trắng */
+  padding: 30px;
   border-radius: 10px;
   width: 400px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3); /* Đổ bóng */
   position: relative;
 }
 
@@ -218,36 +211,110 @@ onMounted(() => {
 .close {
   background: none;
   border: none;
-  color: white;
+  color: #000; /* Màu đen */
   font-size: 1.5rem;
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  cursor: pointer;
 }
 
-/* Modal body styling */
+.close:hover {
+  color: #555; /* Màu xám đậm khi hover */
+}
+
+/* Modal title */
+.modal-title {
+  font-size: 1.8rem;
+  color: #000;
+  margin-bottom: 20px;
+}
+
+/* Input styling */
 .modal-body input {
-  background-color: #2f3336;
-  color: white;
-  border: 1px solid #444;
+  background-color: #f8f9fa; /* Xám nhạt */
+  color: #000;
+  border: 1px solid #ddd; /* Viền xám nhạt */
+  border-radius: 5px;
+  padding: 10px;
+  width: 100%;
+}
+
+.modal-body input:focus {
+  outline: none;
+  border-color: #000;
+}
+
+/* Password toggle icon */
+.password-toggle-icon {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  color: #666; /* Xám */
+  cursor: pointer;
+}
+
+.password-toggle-icon:hover {
+  color: #000;
+}
+
+/* Google button */
+.btn-social {
+  width: 100%;
+  border: 1px solid #ddd;
+  background-color: #f4f1ee; /* Nền xám nhạt */
+  color: #000; /* Chữ đen */
+  text-align: left;
+  border-radius: 5px;
+}
+
+.btn-social:hover {
+  background-color: #e0e0e0;
+}
+
+/* Error message styling */
+.error-message p {
+  color: #d9534f; /* Màu đỏ */
+  font-size: 0.9rem;
   margin-top: 10px;
 }
 
-/* Social button styling */
-.btn-social {
-  border: 1px solid #ddd;
-  text-align: left;
+/* Button styling */
+.btn-primary {
+  background-color: #000;
+  color: #fff;
+  border: 1px solid #000;
+  border-radius: 5px;
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+.btn-primary:hover {
+  background-color: #333;
+}
+
+/* Forgot password link */
+.forgot-password-link {
+  color: #555;
+  font-size: 0.9rem;
+  transition: color 0.3s ease;
+}
+
+.forgot-password-link:hover {
+  color: #000;
+  text-decoration: underline;
+}
+
+/* Divider styling */
 hr {
   display: inline-block;
   width: 40%;
   margin: 0 10px;
+  border: 1px solid #ddd;
 }
 
-.forgot-password-link {
-  transition: color 0.3s ease, text-decoration 0.3s ease;
-}
-
-.forgot-password-link:hover {
-  text-decoration: underline !important;
-  color: #0056b3 !important;
-}
 </style>

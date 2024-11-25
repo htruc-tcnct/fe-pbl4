@@ -2692,7 +2692,14 @@ function sendContentToNewClient(idNewClient) {
 }
 
 onMounted(() => {
-  socket.connect();
+  if (!socket.connected) {
+    socket.connect();
+  }
+  socket.off("give-priority");
+  socket.off("update-insert-one");
+  socket.off("update-delete-one");
+  socket.off("update-modify-style");
+  socket.off("send-content-to-new-Client");
   // localStorage.removeItem("idOwn");
   // localStorage.removeItem("documentId");
   // const idUserAndIdDocument = {
@@ -2717,13 +2724,13 @@ onMounted(() => {
       idDoc: idDoc,
       idOwner: props.ownerIdDocument,
     };
-    console.log("idUserAndIdDocument  ", idUserAndIdDocument, " pri ", pri);
+    console.log("idUserAndIdDocument:  ", idUserAndIdDocument, " pri ", pri);
     // Gửi yêu cầu sau khi nhận đủ thông tin
     socket.emit("request-edited-content", JSON.stringify(idUserAndIdDocument));
   });
   socket.on("update-insert-one", (charToInsert) => {
     const kiTu = JSON.parse(charToInsert);
-    console.log("KI TU: "), charToInsert;
+    // console.log("KI TU: "), charToInsert;
     // lệnh insert của tài liệu khác
     if (idDoc != kiTu.UserAndDoc.idDoc) {
       return;
@@ -2776,19 +2783,19 @@ onMounted(() => {
   });
   // nhận request content đang được edit từ chủ room
   socket.on("send-content-to-new-Client", (idUserAndRoom) => {
-    console.log("đã vào send-content-to-new-Client", idUserAndRoom);
+    // console.log("đã vào send-content-to-new-Client", idUserAndRoom);
     const parsedData = JSON.parse(idUserAndRoom);
     const idUsertmp = parsedData.idOwner;
     const idNewClient = parsedData.idUser;
-
+    // console.log("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii: ", idUsertmp);
     // Kiểm tra nếu không phải tài liệu hiện tại thì bỏ qua
     if (idDoc != parsedData.idDoc) {
-      console.log("không phải tài liệu hiện tại ", idDoc, parsedData);
+      // console.log("không phải tài liệu hiện tại ", idDoc, parsedData);
       return;
     }
     // Chỉ chủ phòng mới gửi dữ liệu
     if (idUser == idUsertmp) {
-      console.log(`Xử lý gửi nội dung cho client mới (ID: ${idNewClient})`);
+      // console.log(`Xử lý gửi nội dung cho client mới (ID: ${idNewClient})`);
       sendContentToNewClient(idNewClient);
     }
   });
@@ -2801,6 +2808,12 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
+  socket.off("give-priority");
+  socket.off("update-insert-one");
+  socket.off("update-delete-one");
+  socket.off("update-modify-style");
+  socket.off("send-content-to-new-Client");
+
   socket.disconnect();
   // contentDiv.value.innerHTML = "";
 });

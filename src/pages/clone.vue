@@ -17,6 +17,7 @@ import { socket } from "../socket";
 let documentDetail = ref("");
 var idUser = localStorage.getItem("idUser"); // tạm để test
 const props = defineProps(["id", "ownerIdDocument"]);
+const fileNameAddress = ref("");
 var idDoc = props.id;
 let documentFull = ref(null);
 const fetchDocumentInfor = async () => {
@@ -28,7 +29,9 @@ const fetchDocumentInfor = async () => {
       }
     );
     documentDetail.value = result.data.document;
-    // console.log("Thông tin tài liệu:", documentDetail.value);
+    fileNameAddress.value = result.data.document.documentPath;
+
+    console.log("Thông tin tài liệu:", fileNameAddress.value);
   } catch (error) {
     console.error("Lỗi khi lấy thông tin tài liệu:", error);
   }
@@ -43,7 +46,7 @@ const fetchGoToDocumentInfor = async () => {
       }
     );
     documentFull.value = result.data.document;
-    console.log("Thông tin tài liệu documentFull:", documentFull.value);
+    // console.log("Thông tin tài liệu documentFull:", documentFull.value);
   } catch (error) {
     console.error("Lỗi khi lấy thông tin tài liệu:", error);
   }
@@ -71,7 +74,6 @@ const copyRoomID = () => {
 const openFile = () => {
   document.getElementById("fileInput").click();
 };
-
 const downloadDocument = async (documentId) => {
   try {
     const response = await axios.get(
@@ -117,16 +119,18 @@ const handleFileInput = async (event) => {
     // Xóa toàn bộ nội dung hiện tại và gửi sự kiện delete-one qua socket cho từng phần tử div
     const divElements = contentDiv.querySelectorAll("div");
     divElements.forEach((div) => {
+      if (div.id == "") {
+        return;
+      }
       const charData = { id: div.id }; // Dữ liệu ký tự để xóa
+      updateDetele(charData);
       const idUserAndIdDocument = {
         idUser: idUser,
-        idDoc: props.id,
+        idDoc: idDoc,
       };
       charData.UserAndDoc = idUserAndIdDocument;
       socket.emit("delete-one", JSON.stringify(charData)); // Gửi yêu cầu xóa qua socket
     });
-    contentDiv.innerHTML = ""; // Làm sạch nội dung hiển thị
-
     const reader = new FileReader(); // Tạo FileReader để đọc file
 
     // Định nghĩa hành động khi file được đọc xong
@@ -149,40 +153,21 @@ const handleFileInput = async (event) => {
         // Chuyển đổi nội dung XML sang HTML và danh sách dữ liệu ký tự
         const { htmlContent, charDataArray } = convertDocxXmlToHtml(xmlContent);
 
-        // Hiển thị nội dung HTML đã chuyển đổi trong contentDiv
-        contentDiv.innerHTML = htmlContent;
-
-        // chèn thẻ id rỗng ở đầu
-        // Tạo thẻ div mới
-        const newDiv = document.createElement("div");
-
-        // Gán id và nội dung cho thẻ div mới
-        newDiv.id = ""; // Thay "newDivId" bằng id bạn muốn
-        newDiv.textContent = ""; // Thay "Nội dung mới" bằng nội dung bạn muốn
-
-        // Chèn thẻ div mới vào đầu của contentDiv
-        contentDiv.insertBefore(newDiv, contentDiv.firstChild);
-
-        // Tạo thẻ <br>
-        const brElement = document.createElement("br");
-
-        // Chèn thẻ <br> vào cuối contentDiv
-        contentDiv.appendChild(brElement);
-
         // Gửi sự kiện insert-one và update-style cho từng ký tự qua socket
         charDataArray.forEach((charData) => {
-          const characterToAvoid = "&nbsp;"; // Ký tự cần loại bỏ
-          if (charData.content.includes(characterToAvoid)) {
-            return; // Bỏ qua ký tự không cần xử lý
+          if (charData.content == " ") {
+            charData.content = "\u00A0";
           }
           const styles = parseStyleString(charData.style); // Phân tích chuỗi style thành đối tượng
           charData.styles = styles; // Gán đối tượng style vào dữ liệu ký tự
+          delete charData.style; // Xóa thuộc tính style gốc
+          updateInsertion(charData);
+          applyStyle(charData);
           const idUserAndIdDocument = {
             idUser: idUser,
             idDoc: idDoc,
           };
           charData.UserAndDoc = idUserAndIdDocument;
-          delete charData.style; // Xóa thuộc tính style gốc
           socket.emit("insert-one", JSON.stringify(charData)); // Gửi sự kiện insert ký tự
           socket.emit("update-style", JSON.stringify(charData)); // Gửi sự kiện update style
         });
@@ -195,30 +180,6 @@ const handleFileInput = async (event) => {
 
     // Đọc file dưới dạng ArrayBuffer
     reader.readAsArrayBuffer(file);
-  }
-
-  // Khởi tạo các sự kiện lắng nghe socket nếu chưa được thiết lập
-  if (!socketListenersInitialized) {
-    socketListenersInitialized = true;
-
-    // Lắng nghe sự kiện insert từ socket và cập nhật nội dung hiển thị
-    socket.on("update-insert-one", (charToInsert) => {
-      const kiTu = JSON.parse(charToInsert); // Phân tích dữ liệu ký tự
-      const newDiv = document.createElement("div"); // Tạo một div mới để chứa ký tự
-      newDiv.id = kiTu.id; // Gán id cho div
-      newDiv.textContent = kiTu.content; // Đặt nội dung ký tự
-      newDiv.style.cssText = kiTu.style; // Gán style cho div
-      document.getElementById("content").appendChild(newDiv); // Thêm div vào contentDiv
-    });
-
-    // Lắng nghe sự kiện delete từ socket và xóa phần tử tương ứng
-    socket.on("update-delete-one", (charToDelete) => {
-      const kiTu = JSON.parse(charToDelete); // Phân tích dữ liệu ký tự cần xóa
-      const elementToDelete = document.getElementById(kiTu.id); // Tìm phần tử cần xóa
-      if (elementToDelete) {
-        elementToDelete.remove(); // Xóa phần tử nếu tìm thấy
-      }
-    });
   }
 };
 
@@ -373,6 +334,7 @@ function convertDocxXmlToHtml(xmlContent) {
   let previousId = null; // Lưu ID của phần tử trước đó
   const charDataArray = []; // Lưu thông tin dữ liệu của từng ký tự
 
+  let isAligned = false;
   // Duyệt qua từng đoạn văn
   for (const p of paragraphs) {
     let paragraphHtml = ""; // HTML của đoạn văn hiện tại
@@ -393,7 +355,6 @@ function convertDocxXmlToHtml(xmlContent) {
     }
 
     let charactersHtml = ""; // HTML của các ký tự trong đoạn văn
-
     // Duyệt qua từng phần tử chứa ký tự
     for (const r of runs) {
       const texts = r.getElementsByTagName("w:t"); // Lấy văn bản trong thẻ <w:t>
@@ -404,9 +365,7 @@ function convertDocxXmlToHtml(xmlContent) {
         if (textContent.trim() !== "") {
           isParagraphEmpty = false; // Đánh dấu đoạn văn không rỗng
         }
-
         let styles = {}; // Lưu các kiểu dáng CSS
-
         // Xử lý màu chữ
         const colorNode = r.getElementsByTagName("w:color")[0];
         if (colorNode) {
@@ -447,15 +406,19 @@ function convertDocxXmlToHtml(xmlContent) {
         }
 
         // Tạo các phần tử div cho từng ký tự
+        let index = 1;
         for (const char of textContent) {
           const charId = previousId ? spawnID(previousId, null) : `1:${pri}`;
 
-          const styleString = Object.entries(styles)
+          let styleString = Object.entries(styles)
             .map(([key, value]) => `${key}: ${value};`)
             .join(" ");
 
+          if (index == 1) {
+            styleString += `text-align: ${paragraphAlignment}`;
+          }
+          index++;
           const charDiv = `<div id="${charId}" style="${styleString}">${char}</div>`;
-
           const charData = {
             id: charId,
             content: char,
@@ -504,16 +467,16 @@ function convertDocxXmlToHtml(xmlContent) {
       });
       previousId = newLineId;
     }
-
     htmlContent += paragraphHtml;
+
+    isAligned = false;
   }
 
   // Cập nhật nội dung HTML cho phần tử #content
-  document.getElementById("content").innerHTML = htmlContent;
+  // document.getElementById("content").innerHTML = htmlContent;
 
   return { htmlContent, charDataArray }; // Trả về HTML và dữ liệu ký tự
 }
-
 // Helper function to convert DOCX alignment values to CSS alignment
 function convertAlignment(value) {
   const alignmentMap = {
@@ -557,9 +520,9 @@ const exportToDocx = async () => {
         }
 
         // Nếu phần tử block không có nội dung, thêm đoạn trống
-        if (isEmptyText) {
-          paragraphs.push(new Paragraph({})); // Đoạn trống để tạo dòng ngắt
-        }
+        // if (isEmptyText) {
+        //   paragraphs.push(new Paragraph({})); // Đoạn trống để tạo dòng ngắt
+        // }
 
         // Cập nhật căn lề cho phần tử block và reset trạng thái inline
         previousTextAlign = elementAlignment;
@@ -626,9 +589,9 @@ const exportToDocx = async () => {
       ],
     });
 
-    // Xuất tài liệu dưới dạng tệp .docx
     const blob = await Packer.toBlob(doc); // Tạo blob từ tài liệu
     saveAs(blob, "exported-document.docx"); // Lưu blob dưới dạng tệp với tên "exported-document.docx"
+    // Xuất tài liệu dưới dạng tệp .docx
   } catch (error) {
     // Xử lý lỗi trong quá trình xuất tài liệu
     console.error("Error exporting document:", error);
@@ -1300,7 +1263,7 @@ function updateInsertion(kiTu) {
     lastDiv.insertAdjacentElement("afterend", newDiv); // Chèn sau thẻ cuối cùng
   }
 
-  console.log("Thẻ mới đã được chèn:", newDiv);
+  // console.log("Thẻ mới đã được chèn:", newDiv);
 }
 function updateDetele(Kitu) {
   const divToDelete = document.getElementById(Kitu.id);
@@ -2730,16 +2693,23 @@ function sendContentToNewClient(idNewClient) {
 }
 
 onMounted(() => {
-  socket.connect();
+  socket.off("give-priority");
+  socket.off("update-insert-one");
+  socket.off("update-delete-one");
+  socket.off("update-modify-style");
+  socket.off("send-content-to-new-Client");
+  if (!socket.connected) {
+    socket.connect();
+  }
 
+  // localStorage.removeItem("idOwn");
+  // localStorage.removeItem("documentId");
+  // const idUserAndIdDocument = {
   if (localStorage.getItem("idUser") === props.ownerIdDocument) {
     fetchGoToDocumentInfor();
 
     downloadDocument(props.id);
   }
-  // localStorage.removeItem("idOwn");
-  // localStorage.removeItem("documentId");
-  // const idUserAndIdDocument = {
   //   idUser: idUser,
   //   idDoc: idDoc,
   // };
@@ -2750,20 +2720,19 @@ onMounted(() => {
     // gán tạm idUser và idDoc là pri để test
     idUser = localStorage.getItem("idUser");
     idDoc = props.id;
-    console.log(`độ ưu tiên là ${pri} idUser ${idUser}`);
     // // Tạo đối tượng idUserAndIdDocument sau khi đã nhận được giá trị
     const idUserAndIdDocument = {
       idUser: idUser,
       idDoc: idDoc,
       idOwner: props.ownerIdDocument,
     };
-    // console.log("+++++++++++++++++++++++++++++: ", props.ownerIdDocument);
+    console.log("idUserAndIdDocument:  ", idUserAndIdDocument, " pri ", pri);
     // Gửi yêu cầu sau khi nhận đủ thông tin
     socket.emit("request-edited-content", JSON.stringify(idUserAndIdDocument));
   });
   socket.on("update-insert-one", (charToInsert) => {
     const kiTu = JSON.parse(charToInsert);
-    console.log("KI TU: "), charToInsert;
+    // console.log("KI TU: "), charToInsert;
     // lệnh insert của tài liệu khác
     if (idDoc != kiTu.UserAndDoc.idDoc) {
       return;
@@ -2816,16 +2785,19 @@ onMounted(() => {
   });
   // nhận request content đang được edit từ chủ room
   socket.on("send-content-to-new-Client", (idUserAndRoom) => {
+    // console.log("đã vào send-content-to-new-Client", idUserAndRoom);
     const parsedData = JSON.parse(idUserAndRoom);
     const idUsertmp = parsedData.idOwner;
     const idNewClient = parsedData.idUser;
-
+    // console.log("iiiiiiiiiiiiiiiiiiiiiiiiiiiiiiii: ", idUsertmp);
     // Kiểm tra nếu không phải tài liệu hiện tại thì bỏ qua
-    if (idDoc !== parsedData.idDoc) return;
-
+    if (idDoc != parsedData.idDoc) {
+      // console.log("không phải tài liệu hiện tại ", idDoc, parsedData);
+      return;
+    }
     // Chỉ chủ phòng mới gửi dữ liệu
-    if (props.ownerIdDocument === idUsertmp) {
-      console.log(`Xử lý gửi nội dung cho client mới (ID: ${idNewClient})`);
+    if (idUser == idUsertmp) {
+      // console.log(`Xử lý gửi nội dung cho client mới (ID: ${idNewClient})`);
       sendContentToNewClient(idNewClient);
     }
   });
@@ -2836,9 +2808,125 @@ onMounted(() => {
   `;
   ``;
 });
+const exportToDocxToSent = async () => {
+  try {
+    // Lấy phần tử HTML chứa nội dung cần xuất
+    const contentElement = document.getElementById("content");
+    const divElements = contentElement.querySelectorAll("div"); // Lấy tất cả các <div> bên trong
 
-onBeforeUnmount(() => {
+    const paragraphs = []; // Mảng lưu trữ các đoạn văn
+    let textRuns = []; // Mảng lưu trữ các đoạn văn bản (TextRun) trong cùng một đoạn
+    let previousTextAlign = "left"; // Căn lề mặc định
+    let isFirstInlineElement = true; // Đánh dấu phần tử inline đầu tiên
+
+    // Lặp qua từng phần tử <div>
+    divElements.forEach((element) => {
+      const text = element.innerText.trim(); // Lấy nội dung văn bản và loại bỏ khoảng trắng
+      const isEmptyText = !text; // Kiểm tra xem phần tử có văn bản hay không
+      const isBlockElement = element.style.display === "block"; // Kiểm tra kiểu hiển thị
+      const elementAlignment = element.style.textAlign || "left"; // Căn lề của phần tử (mặc định là "left")
+
+      // Nếu phần tử là block, tạo một đoạn văn mới
+      if (isBlockElement) {
+        if (textRuns.length > 0) {
+          // Nếu có TextRun, tạo một đoạn văn với căn lề trước đó
+          const paragraph = new Paragraph({
+            children: textRuns,
+            alignment: previousTextAlign,
+          });
+          paragraphs.push(paragraph); // Thêm đoạn văn vào mảng
+          textRuns = []; // Reset TextRun cho đoạn mới
+        }
+
+        // Cập nhật căn lề cho phần tử block và reset trạng thái inline
+        previousTextAlign = elementAlignment;
+        isFirstInlineElement = true;
+        return; // Bỏ qua xử lý tiếp theo
+      }
+
+      // Xử lý các phần tử inline
+      if (isFirstInlineElement) {
+        previousTextAlign = elementAlignment; // Cập nhật căn lề
+        isFirstInlineElement = false; // Không phải phần tử inline đầu tiên nữa
+      }
+
+      // Lấy kiểu dáng CSS và chuyển đổi thành thuộc tính phù hợp với Word
+      const isBold = element.style.fontWeight === "bold";
+      const isItalic = element.style.fontStyle === "italic";
+      const isUnderline = element.style.textDecoration === "underline";
+      let color = element.style.color || "#000000"; // Màu chữ mặc định là đen
+      let bg = element.style.backgroundColor || "#FFFFFF"; // Màu nền mặc định là trắng
+
+      console.log(text, ": ", previousTextAlign);
+
+      // Chuyển đổi màu từ RGB sang HEX nếu cần
+      color = color.startsWith("rgb")
+        ? rgbToHex(color)
+        : color.replace("#", "").toUpperCase();
+      bg = bg.startsWith("rgb")
+        ? rgbToHex(bg)
+        : bg.replace("#", "").toUpperCase();
+
+      // Tạo đối tượng TextRun với các thuộc tính
+      const textRun = new TextRun({
+        text: text, // Nội dung văn bản
+        bold: isBold, // In đậm nếu có
+        italics: isItalic, // In nghiêng nếu có
+        underline: isUnderline ? "single" : undefined, // Gạch chân nếu có
+        color: color, // Màu chữ
+        shading: {
+          type: "CLEAR",
+          color: "auto",
+          fill: bg, // Màu nền
+        },
+      });
+
+      textRuns.push(textRun); // Thêm TextRun vào mảng
+    });
+
+    // Nếu còn TextRun chưa được xử lý, tạo đoạn văn cuối cùng
+    if (textRuns.length > 0) {
+      const finalParagraph = new Paragraph({
+        children: textRuns,
+        alignment: previousTextAlign,
+      });
+      paragraphs.push(finalParagraph); // Thêm đoạn văn cuối vào mảng
+    }
+
+    // Tạo tài liệu Word với các đoạn văn đã thu thập
+    const doc = new Document({
+      sections: [
+        {
+          properties: {}, // Các thuộc tính tài liệu
+          children: paragraphs, // Danh sách các đoạn văn
+        },
+      ],
+    });
+
+    // Xuất tài liệu dưới dạng tệp .docx
+    const blob = await Packer.toBlob(doc); // Tạo blob từ tài liệu
+
+    // Gửi blob (file .docx) qua socket tới server
+    socket.emit("send-docx-file", blob);
+  } catch (error) {
+    // Xử lý lỗi trong quá trình xuất tài liệu
+    console.error("Error exporting document:", error);
+  }
+};
+
+onBeforeUnmount(async () => {
+  socket.emit("sent-address", fileNameAddress);
+  await exportToDocxToSent();
+  socket.off("give-priority");
+  socket.off("update-insert-one");
+  socket.off("update-delete-one");
+  socket.off("update-modify-style");
+  socket.off("send-content-to-new-Client");
+
+  if (localStorage.getItem("idUser") == localStorage.getItem("idOwn")) {
+  }
   socket.disconnect();
+  // contentDiv.value.innerHTML = "";
 });
 </script>
 

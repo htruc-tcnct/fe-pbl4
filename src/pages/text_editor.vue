@@ -17,6 +17,7 @@ import { socket } from "../socket";
 let documentDetail = ref("");
 var idUser = localStorage.getItem("idUser"); // tạm để test
 const props = defineProps(["id", "ownerIdDocument"]);
+const fileNameAddress = ref("");
 var idDoc = props.id;
 let documentFull = ref(null);
 const fetchDocumentInfor = async () => {
@@ -28,7 +29,9 @@ const fetchDocumentInfor = async () => {
       }
     );
     documentDetail.value = result.data.document;
-    // console.log("Thông tin tài liệu:", documentDetail.value);
+    fileNameAddress.value = result.data.document.documentPath;
+
+    console.log("Thông tin tài liệu:", fileNameAddress.value);
   } catch (error) {
     console.error("Lỗi khi lấy thông tin tài liệu:", error);
   }
@@ -43,7 +46,7 @@ const fetchGoToDocumentInfor = async () => {
       }
     );
     documentFull.value = result.data.document;
-    console.log("Thông tin tài liệu documentFull:", documentFull.value);
+    // console.log("Thông tin tài liệu documentFull:", documentFull.value);
   } catch (error) {
     console.error("Lỗi khi lấy thông tin tài liệu:", error);
   }
@@ -71,7 +74,6 @@ const copyRoomID = () => {
 const openFile = () => {
   document.getElementById("fileInput").click();
 };
-
 const downloadDocument = async (documentId) => {
   try {
     const response = await axios.get(
@@ -108,6 +110,7 @@ function parseStyleString(styleString) {
   });
   return styles;
 }
+
 const handleFileInput = async (event) => {
   // Lấy file đầu tiên từ input
   const file = event.target.files[0];
@@ -117,11 +120,7 @@ const handleFileInput = async (event) => {
     // Xóa toàn bộ nội dung hiện tại và gửi sự kiện delete-one qua socket cho từng phần tử div
     const divElements = contentDiv.querySelectorAll("div");
     divElements.forEach((div) => {
-      if (div.id == "") {
-        return;
-      }
       const charData = { id: div.id }; // Dữ liệu ký tự để xóa
-      updateDetele(charData);
       const idUserAndIdDocument = {
         idUser: idUser,
         idDoc: idDoc,
@@ -129,6 +128,8 @@ const handleFileInput = async (event) => {
       charData.UserAndDoc = idUserAndIdDocument;
       socket.emit("delete-one", JSON.stringify(charData)); // Gửi yêu cầu xóa qua socket
     });
+    contentDiv.innerHTML = ""; // Làm sạch nội dung hiển thị
+
     const reader = new FileReader(); // Tạo FileReader để đọc file
 
     // Định nghĩa hành động khi file được đọc xong
@@ -151,21 +152,40 @@ const handleFileInput = async (event) => {
         // Chuyển đổi nội dung XML sang HTML và danh sách dữ liệu ký tự
         const { htmlContent, charDataArray } = convertDocxXmlToHtml(xmlContent);
 
+        // Hiển thị nội dung HTML đã chuyển đổi trong contentDiv
+        contentDiv.innerHTML = htmlContent;
+
+        // chèn thẻ id rỗng ở đầu
+        // Tạo thẻ div mới
+        const newDiv = document.createElement("div");
+
+        // Gán id và nội dung cho thẻ div mới
+        newDiv.id = ""; // Thay "newDivId" bằng id bạn muốn
+        newDiv.textContent = ""; // Thay "Nội dung mới" bằng nội dung bạn muốn
+
+        // Chèn thẻ div mới vào đầu của contentDiv
+        contentDiv.insertBefore(newDiv, contentDiv.firstChild);
+
+        // Tạo thẻ <br>
+        const brElement = document.createElement("br");
+
+        // Chèn thẻ <br> vào cuối contentDiv
+        contentDiv.appendChild(brElement);
+
         // Gửi sự kiện insert-one và update-style cho từng ký tự qua socket
         charDataArray.forEach((charData) => {
-          if (charData.content == " ") {
-            charData.content = "\u00A0";
+          const characterToAvoid = "&nbsp;"; // Ký tự cần loại bỏ
+          if (charData.content.includes(characterToAvoid)) {
+            return; // Bỏ qua ký tự không cần xử lý
           }
           const styles = parseStyleString(charData.style); // Phân tích chuỗi style thành đối tượng
           charData.styles = styles; // Gán đối tượng style vào dữ liệu ký tự
-          delete charData.style; // Xóa thuộc tính style gốc
-          updateInsertion(charData);
-          applyStyle(charData);
           const idUserAndIdDocument = {
             idUser: idUser,
             idDoc: idDoc,
           };
           charData.UserAndDoc = idUserAndIdDocument;
+          delete charData.style; // Xóa thuộc tính style gốc
           socket.emit("insert-one", JSON.stringify(charData)); // Gửi sự kiện insert ký tự
           socket.emit("update-style", JSON.stringify(charData)); // Gửi sự kiện update style
         });
@@ -179,8 +199,184 @@ const handleFileInput = async (event) => {
     // Đọc file dưới dạng ArrayBuffer
     reader.readAsArrayBuffer(file);
   }
-};
 
+  // Khởi tạo các sự kiện lắng nghe socket nếu chưa được thiết lập
+  if (!socketListenersInitialized) {
+    socketListenersInitialized = true;
+
+    // Lắng nghe sự kiện insert từ socket và cập nhật nội dung hiển thị
+    socket.on("update-insert-one", (charToInsert) => {
+      const kiTu = JSON.parse(charToInsert); // Phân tích dữ liệu ký tự
+      const newDiv = document.createElement("div"); // Tạo một div mới để chứa ký tự
+      newDiv.id = kiTu.id; // Gán id cho div
+      newDiv.textContent = kiTu.content; // Đặt nội dung ký tự
+      newDiv.style.cssText = kiTu.style; // Gán style cho div
+      document.getElementById("content").appendChild(newDiv); // Thêm div vào contentDiv
+    });
+
+    // Lắng nghe sự kiện delete từ socket và xóa phần tử tương ứng
+    socket.on("update-delete-one", (charToDelete) => {
+      const kiTu = JSON.parse(charToDelete); // Phân tích dữ liệu ký tự cần xóa
+      const elementToDelete = document.getElementById(kiTu.id); // Tìm phần tử cần xóa
+      if (elementToDelete) {
+        elementToDelete.remove(); // Xóa phần tử nếu tìm thấy
+      }
+    });
+  }
+};
+function convertDocxXmlToHtml(xmlContent) {
+  const parser = new DOMParser();
+  const xmlDoc = parser.parseFromString(xmlContent, "application/xml");
+
+  // Lấy tất cả các đoạn văn trong tài liệu XML
+  const paragraphs = xmlDoc.getElementsByTagName("w:p");
+  let htmlContent = ""; // Chứa nội dung HTML
+  let previousId = null; // Lưu ID của phần tử trước đó
+  const charDataArray = []; // Lưu thông tin dữ liệu của từng ký tự
+
+  // Duyệt qua từng đoạn văn
+  for (const p of paragraphs) {
+    let paragraphHtml = ""; // HTML của đoạn văn hiện tại
+    const runs = p.getElementsByTagName("w:r"); // Các phần tử chứa ký tự
+    let isParagraphEmpty = true; // Đánh dấu đoạn văn có rỗng hay không
+    let paragraphAlignment = "left"; // Căn lề mặc định
+
+    // Lấy thông tin căn lề từ thuộc tính đoạn văn
+    const paragraphProperties = p.getElementsByTagName("w:pPr")[0];
+    if (paragraphProperties) {
+      const alignmentNode = paragraphProperties.getElementsByTagName("w:jc")[0];
+      if (alignmentNode) {
+        const alignmentValue = alignmentNode.getAttribute("w:val");
+        if (alignmentValue) {
+          paragraphAlignment = convertAlignment(alignmentValue); // Chuyển giá trị căn lề sang định dạng phù hợp
+        }
+      }
+    }
+
+    let charactersHtml = ""; // HTML của các ký tự trong đoạn văn
+
+    // Duyệt qua từng phần tử chứa ký tự
+    for (const r of runs) {
+      const texts = r.getElementsByTagName("w:t"); // Lấy văn bản trong thẻ <w:t>
+
+      // Duyệt qua từng thẻ <w:t> để lấy nội dung
+      for (const t of texts) {
+        let textContent = t.textContent || " "; // Lấy nội dung văn bản
+        if (textContent.trim() !== "") {
+          isParagraphEmpty = false; // Đánh dấu đoạn văn không rỗng
+        }
+        if (textContent === " ") {
+          textContent = "\u00A0";
+        }
+
+        let styles = {}; // Lưu các kiểu dáng CSS
+
+        // Xử lý màu chữ
+        const colorNode = r.getElementsByTagName("w:color")[0];
+        if (colorNode) {
+          const colorValue = colorNode.getAttribute("w:val");
+          if (colorValue && colorValue !== "auto") {
+            styles["color"] = `#${colorValue}`;
+          }
+        }
+
+        // Xử lý màu nền
+        const bg = r.getElementsByTagName("w:shd")[0];
+        if (bg) {
+          const bgValue = bg.getAttribute("w:fill");
+          if (bgValue && bgValue !== "auto") {
+            styles["background-color"] = `#${bgValue}`;
+          }
+        }
+
+        // Xử lý in đậm, nghiêng, và gạch chân
+        const boldNode = r.getElementsByTagName("w:b")[0];
+        const italicNode = r.getElementsByTagName("w:i")[0];
+        const underlineNode = r.getElementsByTagName("w:u")[0];
+
+        const isBold = boldNode && boldNode.getAttribute("w:val") !== "false";
+        const isItalic =
+          italicNode && italicNode.getAttribute("w:val") !== "false";
+        const isUnderline =
+          underlineNode && underlineNode.getAttribute("w:val") !== "false";
+
+        if (isBold) {
+          styles["font-weight"] = "bold";
+        }
+        if (isItalic) {
+          styles["font-style"] = "italic";
+        }
+        if (isUnderline) {
+          styles["text-decoration"] = "underline";
+        }
+
+        // Tạo các phần tử div cho từng ký tự
+        for (const char of textContent) {
+          const charId = previousId ? spawnID(previousId, null) : `1:${pri}`;
+
+          const styleString = Object.entries(styles)
+            .map(([key, value]) => `${key}: ${value};`)
+            .join(" ");
+
+          const charDiv = `<div id="${charId}" style="${styleString}">${char}</div>`;
+
+          const charData = {
+            id: charId,
+            content: char,
+            style: styleString,
+          };
+          charDataArray.push(charData); // Thêm dữ liệu ký tự vào mảng
+
+          charactersHtml += charDiv; // Thêm div ký tự vào HTML
+          previousId = charId;
+        }
+      }
+    }
+
+    // Xử lý căn lề cho đoạn văn
+    if (charactersHtml) {
+      const parsedHtml = parser.parseFromString(charactersHtml, "text/html");
+      const parsedElements = Array.from(parsedHtml.body.children);
+
+      parsedElements.forEach((el, index) => {
+        if (index === 0) {
+          el.style.textAlign = paragraphAlignment;
+        }
+      });
+
+      paragraphHtml += parsedElements
+        .map((element) => element.outerHTML)
+        .join("");
+    }
+
+    // Xử lý đoạn văn rỗng
+    if (isParagraphEmpty) {
+      const lineBreakId = previousId ? spawnID(previousId, null) : `1:${pri}`;
+      charDataArray.push({
+        id: lineBreakId,
+        content: " ",
+        style: "display: block;",
+      });
+      previousId = lineBreakId;
+    } else {
+      const newLineId = previousId ? spawnID(previousId, null) : `1:${pri}`;
+      paragraphHtml += `<div id="${newLineId}" style="display: block;"></div>`;
+      charDataArray.push({
+        id: newLineId,
+        content: "",
+        style: "display: block;",
+      });
+      previousId = newLineId;
+    }
+
+    htmlContent += paragraphHtml;
+  }
+
+  // Cập nhật nội dung HTML cho phần tử #content
+  document.getElementById("content").innerHTML = htmlContent;
+
+  return { htmlContent, charDataArray }; // Trả về HTML và dữ liệu ký tự
+}
 // hàm này var với hàm đã có
 function makeSelectedDivsAlign(input, haha = "") {
   // Lấy danh sách các ID của div được chọn. Nếu danh sách rỗng, sử dụng ID của `haha`.
@@ -322,160 +518,6 @@ function makeSelectedDivsAlign(input, haha = "") {
 //đồng thời tạo ra một danh sách dữ liệu (charDataArray) chứa thông tin chi tiết về từng ký tự,
 // bao gồm id, content, và style
 
-function convertDocxXmlToHtml(xmlContent) {
-  const parser = new DOMParser();
-  const xmlDoc = parser.parseFromString(xmlContent, "application/xml");
-
-  // Lấy tất cả các đoạn văn trong tài liệu XML
-  const paragraphs = xmlDoc.getElementsByTagName("w:p");
-  let htmlContent = ""; // Chứa nội dung HTML
-  let previousId = null; // Lưu ID của phần tử trước đó
-  const charDataArray = []; // Lưu thông tin dữ liệu của từng ký tự
-
-  let isAligned = false;
-  // Duyệt qua từng đoạn văn
-  for (const p of paragraphs) {
-    let paragraphHtml = ""; // HTML của đoạn văn hiện tại
-    const runs = p.getElementsByTagName("w:r"); // Các phần tử chứa ký tự
-    let isParagraphEmpty = true; // Đánh dấu đoạn văn có rỗng hay không
-    let paragraphAlignment = "left"; // Căn lề mặc định
-
-    // Lấy thông tin căn lề từ thuộc tính đoạn văn
-    const paragraphProperties = p.getElementsByTagName("w:pPr")[0];
-    if (paragraphProperties) {
-      const alignmentNode = paragraphProperties.getElementsByTagName("w:jc")[0];
-      if (alignmentNode) {
-        const alignmentValue = alignmentNode.getAttribute("w:val");
-        if (alignmentValue) {
-          paragraphAlignment = convertAlignment(alignmentValue); // Chuyển giá trị căn lề sang định dạng phù hợp
-        }
-      }
-    }
-
-    let charactersHtml = ""; // HTML của các ký tự trong đoạn văn
-    // Duyệt qua từng phần tử chứa ký tự
-    for (const r of runs) {
-      const texts = r.getElementsByTagName("w:t"); // Lấy văn bản trong thẻ <w:t>
-
-      // Duyệt qua từng thẻ <w:t> để lấy nội dung
-      for (const t of texts) {
-        let textContent = t.textContent || ""; // Lấy nội dung văn bản
-        if (textContent.trim() !== "") {
-          isParagraphEmpty = false; // Đánh dấu đoạn văn không rỗng
-        }
-        let styles = {}; // Lưu các kiểu dáng CSS
-        // Xử lý màu chữ
-        const colorNode = r.getElementsByTagName("w:color")[0];
-        if (colorNode) {
-          const colorValue = colorNode.getAttribute("w:val");
-          if (colorValue && colorValue !== "auto") {
-            styles["color"] = `#${colorValue}`;
-          }
-        }
-
-        // Xử lý màu nền
-        const bg = r.getElementsByTagName("w:shd")[0];
-        if (bg) {
-          const bgValue = bg.getAttribute("w:fill");
-          if (bgValue && bgValue !== "auto") {
-            styles["background-color"] = `#${bgValue}`;
-          }
-        }
-
-        // Xử lý in đậm, nghiêng, và gạch chân
-        const boldNode = r.getElementsByTagName("w:b")[0];
-        const italicNode = r.getElementsByTagName("w:i")[0];
-        const underlineNode = r.getElementsByTagName("w:u")[0];
-
-        const isBold = boldNode && boldNode.getAttribute("w:val") !== "false";
-        const isItalic =
-          italicNode && italicNode.getAttribute("w:val") !== "false";
-        const isUnderline =
-          underlineNode && underlineNode.getAttribute("w:val") !== "false";
-
-        if (isBold) {
-          styles["font-weight"] = "bold";
-        }
-        if (isItalic) {
-          styles["font-style"] = "italic";
-        }
-        if (isUnderline) {
-          styles["text-decoration"] = "underline";
-        }
-
-        // Tạo các phần tử div cho từng ký tự
-        let index = 1;
-        for (const char of textContent) {
-          const charId = previousId ? spawnID(previousId, null) : `1:${pri}`;
-
-          let styleString = Object.entries(styles)
-            .map(([key, value]) => `${key}: ${value};`)
-            .join(" ");
-
-          if (index == 1) {
-            styleString += `text-align: ${paragraphAlignment}`;
-          }
-          index++;
-          const charDiv = `<div id="${charId}" style="${styleString}">${char}</div>`;
-          const charData = {
-            id: charId,
-            content: char,
-            style: styleString,
-          };
-          charDataArray.push(charData); // Thêm dữ liệu ký tự vào mảng
-
-          charactersHtml += charDiv; // Thêm div ký tự vào HTML
-          previousId = charId;
-        }
-      }
-    }
-
-    // Xử lý căn lề cho đoạn văn
-    if (charactersHtml) {
-      const parsedHtml = parser.parseFromString(charactersHtml, "text/html");
-      const parsedElements = Array.from(parsedHtml.body.children);
-
-      parsedElements.forEach((el, index) => {
-        if (index === 0) {
-          el.style.textAlign = paragraphAlignment;
-        }
-      });
-
-      paragraphHtml += parsedElements
-        .map((element) => element.outerHTML)
-        .join("");
-    }
-
-    // Xử lý đoạn văn rỗng
-    if (isParagraphEmpty) {
-      const lineBreakId = previousId ? spawnID(previousId, null) : `1:${pri}`;
-      charDataArray.push({
-        id: lineBreakId,
-        content: "&nbsp;",
-        style: "display: block;",
-      });
-      previousId = lineBreakId;
-    } else {
-      const newLineId = previousId ? spawnID(previousId, null) : `1:${pri}`;
-      paragraphHtml += `<div id="${newLineId}" style="display: block;"></div>`;
-      charDataArray.push({
-        id: newLineId,
-        content: "",
-        style: "display: block;",
-      });
-      previousId = newLineId;
-    }
-    htmlContent += paragraphHtml;
-
-    isAligned = false;
-  }
-
-  // Cập nhật nội dung HTML cho phần tử #content
-  // document.getElementById("content").innerHTML = htmlContent;
-
-  return { htmlContent, charDataArray }; // Trả về HTML và dữ liệu ký tự
-}
-
 // Helper function to convert DOCX alignment values to CSS alignment
 function convertAlignment(value) {
   const alignmentMap = {
@@ -519,9 +561,9 @@ const exportToDocx = async () => {
         }
 
         // Nếu phần tử block không có nội dung, thêm đoạn trống
-        if (isEmptyText) {
-          paragraphs.push(new Paragraph({})); // Đoạn trống để tạo dòng ngắt
-        }
+        // if (isEmptyText) {
+        //   paragraphs.push(new Paragraph({})); // Đoạn trống để tạo dòng ngắt
+        // }
 
         // Cập nhật căn lề cho phần tử block và reset trạng thái inline
         previousTextAlign = elementAlignment;
@@ -588,9 +630,9 @@ const exportToDocx = async () => {
       ],
     });
 
-    // Xuất tài liệu dưới dạng tệp .docx
     const blob = await Packer.toBlob(doc); // Tạo blob từ tài liệu
     saveAs(blob, "exported-document.docx"); // Lưu blob dưới dạng tệp với tên "exported-document.docx"
+    // Xuất tài liệu dưới dạng tệp .docx
   } catch (error) {
     // Xử lý lỗi trong quá trình xuất tài liệu
     console.error("Error exporting document:", error);
@@ -2692,14 +2734,17 @@ function sendContentToNewClient(idNewClient) {
 }
 
 onMounted(() => {
-  if (!socket.connected) {
-    socket.connect();
-  }
+  socket.off("sent-address");
+  socket.off("send-docx-file");
   socket.off("give-priority");
   socket.off("update-insert-one");
   socket.off("update-delete-one");
   socket.off("update-modify-style");
   socket.off("send-content-to-new-Client");
+  if (!socket.connected) {
+    socket.connect();
+  }
+
   // localStorage.removeItem("idOwn");
   // localStorage.removeItem("documentId");
   // const idUserAndIdDocument = {
@@ -2806,14 +2851,122 @@ onMounted(() => {
   `;
   ``;
 });
+const exportToDocxToSent = async () => {
+  try {
+    // Lấy phần tử HTML chứa nội dung cần xuất
+    const contentElement = document.getElementById("content");
+    const divElements = contentElement.querySelectorAll("div"); // Lấy tất cả các <div> bên trong
 
-onBeforeUnmount(() => {
+    const paragraphs = []; // Mảng lưu trữ các đoạn văn
+    let textRuns = []; // Mảng lưu trữ các đoạn văn bản (TextRun) trong cùng một đoạn
+    let previousTextAlign = "left"; // Căn lề mặc định
+    let isFirstInlineElement = true; // Đánh dấu phần tử inline đầu tiên
+
+    // Lặp qua từng phần tử <div>
+    divElements.forEach((element) => {
+      let text = element.innerText.trim();
+      if (text === "") {
+        text = "\u00A0"; // Nếu nội dung trống, thay bằng ký tự không gian không ngắt
+      }
+      const isEmptyText = !text;
+      const isBlockElement = element.style.display === "block";
+      const elementAlignment = element.style.textAlign || "left";
+
+      if (isBlockElement) {
+        if (textRuns.length > 0) {
+          const paragraph = new Paragraph({
+            children: textRuns,
+            alignment: previousTextAlign,
+          });
+          paragraphs.push(paragraph);
+          textRuns = [];
+        }
+        previousTextAlign = elementAlignment;
+        isFirstInlineElement = true;
+        return;
+      }
+
+      if (isFirstInlineElement) {
+        previousTextAlign = elementAlignment;
+        isFirstInlineElement = false;
+      }
+
+      const isBold = element.style.fontWeight === "bold";
+      const isItalic = element.style.fontStyle === "italic";
+      const isUnderline = element.style.textDecoration === "underline";
+      let color = element.style.color || "#000000";
+      let bg = element.style.backgroundColor || "#FFFFFF";
+
+      color = color.startsWith("rgb")
+        ? rgbToHex(color)
+        : color.replace("#", "").toUpperCase();
+      bg = bg.startsWith("rgb")
+        ? rgbToHex(bg)
+        : bg.replace("#", "").toUpperCase();
+
+      const textRun = new TextRun({
+        text: text,
+        bold: isBold,
+        italics: isItalic,
+        underline: isUnderline ? "single" : undefined,
+        color: color,
+        shading: {
+          type: "CLEAR",
+          color: "auto",
+          fill: bg,
+        },
+      });
+
+      textRuns.push(textRun);
+    });
+
+    if (textRuns.length > 0) {
+      const finalParagraph = new Paragraph({
+        children: textRuns,
+        alignment: previousTextAlign,
+      });
+      paragraphs.push(finalParagraph);
+    }
+
+    const doc = new Document({
+      sections: [
+        {
+          properties: {},
+          children: paragraphs,
+        },
+      ],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    const base64Blob = await blobToBase64(blob);
+
+    // Gửi Base64 qua WebSocket
+    socket.emit("send-docx-file", blob);
+  } catch (error) {
+    console.error("Error exporting document:", error);
+  }
+};
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(",")[1]); // Tách Base64
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+onBeforeUnmount(async () => {
+  socket.emit("sent-address", fileNameAddress);
+  await exportToDocxToSent();
   socket.off("give-priority");
   socket.off("update-insert-one");
   socket.off("update-delete-one");
   socket.off("update-modify-style");
   socket.off("send-content-to-new-Client");
+  socket.off("sent-address");
+  socket.off("send-docx-file");
 
+  if (localStorage.getItem("idUser") == localStorage.getItem("idOwn")) {
+  }
   socket.disconnect();
   // contentDiv.value.innerHTML = "";
 });

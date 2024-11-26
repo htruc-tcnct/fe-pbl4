@@ -190,19 +190,25 @@ const sendToEmail = async () => {
     alert("Failed to send email.");
   }
 };
-const copyLink = async () => {
-  if (!idDocument.value) {
-    alert("Share code is not available!");
-    return;
-  }
+const copyLink = () => {
+  const textArea = document.createElement("textarea"); // Tạo một phần tử textarea tạm thời
+  textArea.value = idDocument.value; // Gán giá trị muốn sao chép
+  document.body.appendChild(textArea); // Thêm textarea vào body để tương tác
+
+  textArea.select(); // Chọn tất cả văn bản trong textarea
+  textArea.setSelectionRange(0, 99999); // Dành cho thiết bị di động
+
   try {
-    await navigator.clipboard.writeText(idDocument.value);
+    document.execCommand("copy"); // Thực hiện lệnh sao chép
     alert("Share Code copied to clipboard!");
   } catch (err) {
     console.error("Error copying to clipboard:", err);
-    alert("Failed to copy share code.", err);
+    alert("Failed to copy share code.");
   }
+
+  document.body.removeChild(textArea); // Xóa textarea khỏi DOM sau khi sao chép
 };
+
 const onSubmit = async () => {
   if (!props.idDoc || props.idDoc === "") {
     console.error("Invalid idDoc:", props.idDoc);

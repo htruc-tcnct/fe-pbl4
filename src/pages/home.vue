@@ -153,6 +153,8 @@
           style="width: 12rem; height: 5rem"
           @contextmenu.prevent="showContextMenu($event, document)"
           @click="goToTextEditor(document._id)"
+          @mouseenter="handleMouseEnter(document)"
+          @mouseleave="handleMouseLeave(document)"
         >
           <input
             type="text"
@@ -173,19 +175,19 @@
         class="context-menu"
       >
         <ul class="position-relative">
-          <li @click="handleSettingShare(selectedDocument)">
+          <li class="ms-4" @click="handleSettingShare(selectedDocument)">
             <i
               class="fa-solid fa-share position-absolute top-0 start-0 ms-2 mt-2"
             ></i>
             Setting Share
           </li>
-          <li @click="handleDelete(selectedDocument)">
+          <li class="ms-4" @click="handleDelete(selectedDocument)">
             <i
               class="fa-regular fa-trash-can position-absolute top-50 start-0 translate-middle-y ms-2"
             ></i>
             Delete
           </li>
-          <li @click="toggleEdit(selectedDocument)">
+          <li class="ms-4" @click="toggleEdit(selectedDocument)">
             <i
               class="fa-solid fa-highlighter position-absolute bottom-0 start-0 mb-2 ms-2"
             ></i>
@@ -299,7 +301,13 @@ const joinDocument = async () => {
     }
   }
 };
-
+const handleMouseEnter = (document) => {
+  localStorage.setItem("documentId", document._id);
+  console.log("move enter ", document._id);
+};
+const handleMouseLeave = (document) => {
+  console.log("move leave");
+};
 const openFile = () => {
   document.getElementById("fileInput").click();
 };
@@ -485,28 +493,81 @@ onMounted(async () => {
 <style scoped>
 .context-menu {
   position: absolute;
+  background: #fff; /* Màu nền trắng */
+  border: 1px solid #ddd; /* Viền xám nhạt */
+  border-radius: 8px; /* Bo góc */
+  padding: 8px 0;
+  width: 200px; /* Chiều rộng menu */
   z-index: 1000;
-  background-color: white;
-  border: 1px solid #ccc;
-  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
-  border-radius: 4px;
-  padding: 10px;
-  width: 200px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); /* Đổ bóng */
+  animation: fadeIn 0.2s ease-in-out; /* Hiệu ứng mờ */
+  cursor: pointer; /* Thay đổi con trỏ chuột thành chỉ mục */
 }
 
 .context-menu ul {
-  list-style-type: none;
+  list-style: none; /* Xóa ký hiệu trước các mục */
   padding: 0;
   margin: 0;
 }
 
-.context-menu ul li {
-  padding: 8px 12px;
+.context-menu li {
+  display: flex;
+  align-items: center; /* Căn giữa icon và text */
+  padding: 10px 16px; /* Khoảng cách giữa các mục */
+  font-size: 14px;
+  color: #333; /* Màu chữ đen nhạt */
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out; /* Hiệu ứng hover */
+}
+
+.context-menu li:hover {
+  background: #f8f9fa; /* Nền xám nhạt khi hover */
+  color: #000; /* Màu chữ đen đậm */
+}
+
+.context-menu i {
+  font-size: 16px; /* Kích thước biểu tượng */
+  color: #666; /* Màu biểu tượng */
+  transition: color 0.2s ease-in-out; /* Hiệu ứng hover cho biểu tượng */
+}
+
+.context-menu li:hover i {
+  color: #000; /* Màu biểu tượng khi hover */
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.btn-search {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: linear-gradient(135deg, #2386cd, #27a9e6);
+  border: none;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
   cursor: pointer;
 }
 
-.context-menu ul li:hover {
-  background-color: #f1f1f1;
+.btn-search:hover {
+  background: linear-gradient(135deg, #076bb3, #27a9e6);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+}
+
+.btn-search i {
+  color: white;
+  font-size: 1.5rem;
 }
 
 /* Style mặc định của tài liệu */
@@ -553,5 +614,201 @@ input.text-light.bg-dark.border-0.title:hover {
 input.text-light.bg-dark.border-0:hover {
   background-color: rgb(180, 180, 191) !important;
   color: rgb(20, 12, 1) !important;
+}
+
+.btn-account {
+  background: transparent;
+  border: none;
+  padding: 0;
+  outline: none;
+  transition: box-shadow 0.2s ease;
+}
+
+.btn-account:hover {
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+/* Dropdown Menu */
+.account-menu {
+  width: 320px;
+  border-radius: 12px;
+  background-color: #ffffff; /* Màu trắng */
+  border: 1px solid #e6e6e6;
+}
+
+.account-menu .account-header {
+  background-color: #f8f9fa; /* Màu nền header nhạt */
+  border-bottom: 1px solid #e6e6e6;
+}
+
+.account-menu h6 {
+  color: #333; /* Màu chữ tối */
+}
+
+.account-menu p {
+  color: #666; /* Màu chữ phụ */
+}
+
+/* Nút Manage Account */
+.btn-outline-dark {
+  border: 1px solid #333;
+  color: #333;
+}
+
+.btn-outline-dark:hover {
+  background-color: #333;
+  color: #fff;
+}
+
+/* Nút Sign Out */
+.btn-dark {
+  background-color: #333;
+  color: #fff;
+  border-radius: 8px;
+  transition: background-color 0.3s ease;
+}
+
+.btn-dark:hover {
+  background-color: #000;
+}
+
+/* Divider */
+.dropdown-divider {
+  border-color: #e6e6e6;
+}
+
+/* Hiệu ứng bóng cho menu */
+.account-menu {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Tăng kích thước icon trong nút */
+.account-menu i {
+  font-size: 1.25rem;
+}
+
+/* Section Join */
+.join-section {
+  background-color: #f8f9fa; /* Màu nền nhạt */
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  margin: auto;
+}
+
+.join-section .join-group {
+  display: flex;
+  align-items: center;
+  border: 1px solid #ddd; /* Viền nhạt */
+  border-radius: 50px;
+  overflow: hidden;
+  background-color: #fff; /* Màu nền trắng */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Input Field */
+.join-code {
+  border: none;
+  border-right: 1px solid #ddd; /* Viền giữa input và nút */
+  padding: 15px 20px;
+  font-size: 16px;
+  border-radius: 0;
+  flex: 1;
+  outline: none;
+  background: none;
+}
+
+.join-code:focus {
+  box-shadow: none;
+  outline: none;
+}
+
+/* Button Join */
+.btn-join {
+  background: linear-gradient(135deg, #2386cd, #27a9e6); /* Màu gradient */
+  border: none;
+  color: white;
+  padding: 15px 20px;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 0 50px 50px 0;
+  transition: all 0.2s ease;
+}
+
+.btn-join:hover {
+  background: linear-gradient(135deg, #076bb3, #2386cd);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Error Message */
+.join-section .text-danger {
+  font-size: 14px;
+  font-style: italic;
+}
+/* Hiệu ứng hover trên toàn bộ button (ô văn bản) */
+.btn-document {
+  cursor: pointer; /* Con trỏ chỉ mục */
+  transition: transform 0.2s ease, background-color 0.2s ease,
+    border-color 0.2s ease; /* Thời gian và kiểu chuyển đổi */
+}
+
+.btn-document:hover {
+  transform: scale(1.05); /* Tăng kích thước nhẹ khi hover */
+  background-color: #333; /* Đổi nền thành màu đen đậm hơn */
+  border-color: #555; /* Đổi màu viền */
+}
+
+/* Hiệu ứng hover và focus trên input (khung tên văn bản) */
+.title {
+  cursor: pointer; /* Con trỏ chỉ mục khi hover */
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    color 0.2s ease; /* Đồng bộ thời gian và kiểu chuyển đổi */
+  background-color: transparent; /* Nền trong suốt */
+}
+
+.title:focus {
+  cursor: text; /* Con trỏ nhập liệu khi focus */
+  outline: none; /* Loại bỏ viền focus mặc định */
+  background-color: #222; /* Nền đen nhạt khi focus */
+  border-bottom: 2px solid #ccc; /* Viền dưới khi focus */
+  color: #fff; /* Màu chữ trắng khi focus */
+}
+
+/* Đảm bảo toàn bộ phần input và button đồng bộ */
+.btn-document:hover .title {
+  background-color: #333; /* Đổi màu nền của input khi hover đồng bộ với button */
+  color: #fff; /* Màu chữ */
+}
+.assigned-activities .dropdown-toggle {
+  font-size: 18px; /* Kích thước biểu tượng vừa phải */
+  width: 40px; /* Kích thước nút (chiều rộng) */
+  height: 40px; /* Kích thước nút (chiều cao) */
+  background-color: #000; /* Nền đen */
+  color: #fff; /* Chữ trắng */
+  border: none; /* Xóa viền mặc định */
+  border-radius: 50%; /* Bo tròn nút */
+  display: flex; /* Dùng Flexbox để căn giữa biểu tượng */
+  align-items: center; /* Căn giữa dọc */
+  justify-content: center; /* Căn giữa ngang */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Đổ bóng nhẹ */
+  transition: transform 0.2s ease, background-color 0.2s ease; /* Hiệu ứng */
+}
+
+/* Hiệu ứng hover cho nút dấu + */
+.assigned-activities .dropdown-toggle:hover {
+  background-color: #333; /* Màu nền sáng hơn khi hover */
+  transform: scale(1.1); /* Phóng to nhẹ khi hover */
+}
+
+.custom-width {
+  width: 500px; /* Đảm bảo div co giãn theo màn hình */
+}
+.custom-join-section {
+  max-width: 600px; /* Đặt chiều rộng tối đa */
+  margin: auto;
+}
+.container-fluid {
+  padding: 0;
 }
 </style>

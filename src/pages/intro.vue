@@ -1,5 +1,8 @@
 <template>
   <div class="container-fluid">
+    <!-- Video Background -->
+
+    <!-- Nội dung chính -->
     <div class="row">
       <div
         class="col-md-6 text-center"
@@ -17,32 +20,6 @@
 
       <div class="col-md-6 p-5" data-aos="fade-left">
         <h1 class="text-center p-3">Sign up now.</h1>
-
-        <div class="text-center">
-          <div class="row">
-            <button
-              @click="loginWithGG"
-              class="btn btn-block btn-social btn-google py-2"
-              style="
-                background-color: #f4f1ee;
-                color: #000;
-                margin-bottom: 15px;
-              "
-            >
-              <img
-                src="../assets/gg.png"
-                style="width: 20px; margin-right: 10px"
-              />
-              Sign up with Google
-            </button>
-          </div>
-        </div>
-
-        <div class="text-center" style="margin: 20px 0">
-          <hr />
-          <span>or</span>
-          <hr />
-        </div>
 
         <div class="text-center">
           <button
@@ -94,7 +71,6 @@
     </footer>
   </div>
 </template>
-
 <script setup>
 import { ref, onMounted } from "vue";
 import AOS from "aos";
@@ -122,4 +98,59 @@ const loginWithGG = () => {
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+.video-bg {
+  position: fixed; /* Đặt cố định để phủ toàn màn hình */
+  top: 0;
+  left: 0;
+  width: 100%; /* Phủ hết chiều rộng */
+  height: 100%; /* Phủ hết chiều cao */
+  object-fit: cover; /* Đảm bảo giữ tỷ lệ video */
+  z-index: -1; /* Đặt phía sau nội dung */
+}
+.container-fluid {
+  position: relative; /* Đảm bảo nội dung nằm phía trên video */
+  z-index: 1;
+}
+.main-content {
+  padding-bottom: 350px; /* Tạo khoảng trống giữa nội dung chính và footer */
+}
+
+.footer {
+  position: relative;
+  color: white;
+  margin-top: 50px; /* Đẩy footer xuống dưới */
+}
+.footer {
+  color: white; /* Đặt màu chữ trắng */
+}
+
+.footer a {
+  color: white; /* Đặt màu cho các liên kết */
+  text-decoration: none; /* Bỏ gạch chân */
+}
+
+.footer a:hover {
+  text-decoration: underline; /* Thêm gạch chân khi hover */
+}
+button:hover {
+  transform: translateY(-2px); /* Nhô lên nhẹ khi hover */
+  transition: transform 0.2s ease, box-shadow 0.2s ease; /* Hiệu ứng mượt */
+  box-shadow: 0px 6px 10px rgba(0, 0, 0, 0.2); /* Tăng shadow khi hover */
+}
+
+/* Hover cho nút màu chính (primary) */
+.btn-primary:hover {
+  background-color: #429dd9 !important; /* Tô đậm màu xanh dương */
+}
+
+/* Hover cho nút màu phụ (secondary) */
+.btn-secondary:hover {
+  background-color: #e1e5e8 !important; /* Màu sáng hơn */
+}
+
+/* Hover cho nút Google (social) */
+.btn-social:hover {
+  background-color: #e0dedc !important; /* Đổi màu nền */
+}
+</style>

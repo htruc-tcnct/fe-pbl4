@@ -50,7 +50,7 @@ import axios from "axios";
 
 const props = defineProps(["idDoc"]);
 const emit = defineEmits(["cancel"]);
-
+const idDocument = localStorage.getItem("documentId");
 const emailToShare = ref("");
 const emailMessage = ref("");
 const emailFormVisible = ref(false);
@@ -62,7 +62,7 @@ const sendToEmail = async () => {
       `${import.meta.env.VITE_SERVER_URL}/documents/share-to-email`,
       {
         email: emailToShare.value,
-        id: props.idDoc,
+        id: idDocument,
         message: emailMessage.value,
       }
     );

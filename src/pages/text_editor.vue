@@ -668,6 +668,8 @@ const contentDiv = ref(null);
 var pri;
 let arrContentForCtrlV = [];
 let arrdivStyle = [];
+let updatingFlag = true;
+let arrForUpdate = [];
 
 const ShowCode = () => {
   showCode.value.dataset.active = !active;
@@ -2685,52 +2687,73 @@ function HandleAlignAfterOpenFile() {
 const handledClients = new Set();
 
 function sendContentToNewClient(idNewClient) {
-  // Kiểm tra nếu client đã được xử lý
-  if (handledClients.has(idNewClient)) {
-    console.log(`Client ${idNewClient} đã nhận nội dung, bỏ qua.`);
-    return;
-  }
-
-  // Đánh dấu client đã được xử lý
-
   // Lấy tất cả các thẻ div trong #content
   const divs = document.querySelectorAll("#content div");
+  // gửi lệnh để newClient biết mình đang được cập nhật
+  socket.emit("is-updating", JSON.stringify(idNewClient), (response) => {
+    console.log("Server has acknowledged the update: ", response);
+    // Duyệt qua từng thẻ div
+    divs.forEach((div) => {
+      if (div.id !== "") {
+        // gửi Div cho client vừa join
+        const divVuaTao = {
+          id: div.id,
+          content: div.textContent,
+        };
+        const idUserAndIdDocument = {
+          idUser: idUser,
+          idDoc: idDoc,
+          idNewClient: idNewClient,
+        };
+        divVuaTao.UserAndDoc = idUserAndIdDocument;
+        socket.emit("insert-one", JSON.stringify(divVuaTao));
+        // Khởi tạo đối tượng chứa thông tin
+        if (div.style.length !== 0) {
+          const divStyle = {
+            id: div.id, // Lấy ID của thẻ div
+            styles: {},
+          };
 
-  divs.forEach((div) => {
-    if (div.id !== "") {
-      // gửi Div cho client vừa join
-      const divVuaTao = {
-        id: div.id,
-        content: div.textContent,
-      };
-      const idUserAndIdDocument = {
-        idUser: idUser,
-        idDoc: idDoc,
-        idNewClient: idNewClient,
-      };
-      divVuaTao.UserAndDoc = idUserAndIdDocument;
-      socket.emit("insert-one", JSON.stringify(divVuaTao));
-
-      // Khởi tạo đối tượng chứa thông tin style
-      const divStyle = {
-        id: div.id,
-        styles: {},
-      };
-
-      // Duyệt qua các thuộc tính style inline
-      for (let i = 0; i < div.style.length; i++) {
-        const styleName = div.style[i];
-        divStyle.styles[styleName] = div.style[styleName];
+          // Duyệt qua các thuộc tính style inline
+          for (let i = 0; i < div.style.length; i++) {
+            const styleName = div.style[i]; // Tên của style (ví dụ: "color", "display")
+            divStyle.styles[styleName] = div.style[styleName]; // Gán giá trị của style
+          }
+          divStyle.UserAndDoc = idUserAndIdDocument;
+          socket.emit("update-style", JSON.stringify(divStyle));
+        }
       }
-
-      if (Object.keys(divStyle.styles).length !== 0) {
-        divStyle.UserAndDoc = idUserAndIdDocument;
-        socket.emit("update-style", JSON.stringify(divStyle));
-      }
+    });
+    // gửi lệnh để newClient biết mình đã được cập nhật xong
+    socket.emit("end-updating", JSON.stringify(idNewClient));
+  });
+}
+// xử lý khi đang được cập nhật dữ liệu từ owner
+function pushIntoArrForUpdate(chucNang, duLieu) {
+  arrForUpdate.push({
+    funtion: chucNang,
+    data: duLieu,
+  });
+  console.log("arrForpda ", arrForUpdate);
+}
+function handleEndUpdate() {
+  if (arrForUpdate.length == 0) {
+    console.log("không cần update thêm");
+    return;
+  }
+  arrForUpdate.forEach((element) => {
+    if (element.funtion == "insert") {
+      console.log("insert ", element.data.id);
+      updateInsertion(element.data);
+    } else if (element.funtion == "delete") {
+      console.log("delete ", element.data.id);
+      updateDetele(element.data);
+    } else if (element.funtion == "style") {
+      console.log("style ", element.data.id);
+      applyStyle(element.data);
     }
   });
-
-  console.log(`Gửi nội dung cho client mới (ID: ${idNewClient})`);
+  arrForUpdate = [];
 }
 
 onMounted(() => {
@@ -2770,12 +2793,25 @@ onMounted(() => {
       idOwner: props.ownerIdDocument,
     };
     console.log("idUserAndIdDocument:  ", idUserAndIdDocument, " pri ", pri);
+    // tắt cờ đang cập nhật
+    socket.on("endupdating", (idNewClient) => {
+      if (idUser == JSON.parse(idNewClient)) {
+        updatingFlag = false;
+        handleEndUpdate();
+      }
+    });
     // Gửi yêu cầu sau khi nhận đủ thông tin
     socket.emit("request-edited-content", JSON.stringify(idUserAndIdDocument));
   });
+  // bật cờ đang cập nhật
+  socket.on("updating", (idNewClient, callback) => {
+    if (idUser == JSON.parse(idNewClient)) {
+      updatingFlag = true;
+      callback("Update successful!");
+    }
+  });
   socket.on("update-insert-one", (charToInsert) => {
     const kiTu = JSON.parse(charToInsert);
-    // console.log("KI TU: "), charToInsert;
     // lệnh insert của tài liệu khác
     if (idDoc != kiTu.UserAndDoc.idDoc) {
       return;
@@ -2786,6 +2822,8 @@ onMounted(() => {
       } else {
         return;
       }
+    } else if (updatingFlag == true) {
+      pushIntoArrForUpdate("insert", kiTu);
     } else {
       updateInsertion(kiTu);
     }
@@ -2804,6 +2842,8 @@ onMounted(() => {
       } else {
         return;
       }
+    } else if (updatingFlag == true) {
+      pushIntoArrForUpdate("delete", tempChartoDelete);
     } else {
       updateDetele(tempChartoDelete);
     }
@@ -2822,6 +2862,8 @@ onMounted(() => {
       } else {
         return;
       }
+    } else if (updatingFlag == true) {
+      pushIntoArrForUpdate("style", DivUpdatedStyle);
     } else {
       applyStyle(idUpdatedStyle);
     }

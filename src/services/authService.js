@@ -7,9 +7,12 @@ export const checkSessionStatus = async () => {
   const router = useRouter();
 
   try {
-    const result = await axios.get("http://localhost:8000/user-info", {
-      withCredentials: true,
-    });
+    const result = await axios.get(
+      `${import.meta.env.VITE_SERVER_URL}/user-info`,
+      {
+        withCredentials: true,
+      }
+    );
 
     if (result.data && result.data.name) {
     } else {

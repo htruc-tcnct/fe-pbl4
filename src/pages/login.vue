@@ -19,24 +19,9 @@
         </div>
 
         <div class="modal-body">
-          <div class="row px-3 mb-4">
-            <button
-              @click="loginWithGG"
-              class="btn btn-block btn-social btn-google py-2"
-            >
-              <img
-                src="../assets/gg.png"
-                style="width: 20px; margin-right: 10px"
-              />
-              Sign in with Google
-            </button>
-          </div>
+        
 
-          <div class="text-center my-3">
-            <hr />
-            <span>or</span>
-            <hr />
-          </div>
+          
 
           <div class="position-relative">
             <input

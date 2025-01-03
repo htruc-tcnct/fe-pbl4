@@ -1,16 +1,7 @@
 <template>
   <div class="container-fluid">
     <!-- Video Background -->
-    <video
-      autoplay
-      loop
-      muted
-      playsinline
-      class="video-bg"
-    >
-      <source src="../assets/background3.mp4" type="video/mp4" />
-      Your browser does not support the video tag.
-    </video>
+    
 
       <!-- Nội dung chính -->
       <div class="row">
@@ -31,31 +22,8 @@
       <div class="col-md-6 p-5" data-aos="fade-left">
         <h1 class="text-center p-3">Sign up now.</h1>
 
-        <div class="text-center">
-          <div class="row">
-            <button
-              @click="loginWithGG"
-              class="btn btn-block btn-social btn-google py-2"
-              style="
-                background-color: #f4f1ee;
-                color: #000;
-                margin-bottom: 15px;
-              "
-            >
-              <img
-                src="../assets/gg.png"
-                style="width: 20px; margin-right: 10px"
-              />
-              Sign up with Google
-            </button>
-          </div>
-        </div>
 
-        <div class="text-center" style="margin: 20px 0">
-          <hr />
-          <span>or</span>
-          <hr />
-        </div>
+      
 
         <div class="text-center">
           <button

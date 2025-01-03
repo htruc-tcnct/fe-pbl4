@@ -3111,7 +3111,7 @@ input[type="color"] {
   border: none;
   background: none;
 }
-
+  
   .custom-dropdown {
     width: 100px; /* Chiều rộng của dropdown */
     height: auto; /* Đặt chiều cao tự động (có thể cố định nếu cần) */
@@ -3120,11 +3120,41 @@ input[type="color"] {
   }
   .custom-div {
     background-color: #f9f9f9; /* Nền màu sáng nhạt */
-    border: 1px solid #ccc; /* Đường viền màu xám nhạt */
-    border-radius: 10px; /* Bo tròn góc viền */
-    padding: 10px 15px; /* Khoảng cách bên trong */
-    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Thêm bóng đổ nhẹ */
-    transition: all 0.3s ease-in-out; /* Hiệu ứng khi thay đổi */
+  border: 1px solid #ccc; /* Đường viền màu xám nhạt */
+  border-radius: 5px; /* Bo tròn góc viền */
+  padding: 10px 15px; /* Khoảng cách bên trong */
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Thêm bóng đổ nhẹ */
+  transition: all 0.3s ease-in-out; /* Hiệu ứng khi thay đổi */
+  width: 60%; /* Đặt chiều rộng div chiếm 75% trang */
+  margin: 0 auto; /* Căn giữa div theo chiều ngang */
+  display: flex; /* Sử dụng Flexbox */
+  justify-content: space-evenly; /* Căn đều các button */
+  align-items: center; /* Căn giữa theo chiều dọc */
   }
+  .custom-btn:hover {
+  background-color: #3da746; /* Màu nền khi hover */
+  transform: translateY(-2px); /* Hiệu ứng nhấc lên nhẹ */
+}
+
+/* Dropdown Menu Styling */
+.dropdown-menu-dark {
+  background-color: #343a40; /* Nền tối cho menu */
+  border-radius: 5px; /* Bo tròn các góc */
+  border: none; /* Loại bỏ viền */
+}
+
+/* Dropdown Item Styling */
+.dropdown-item {
+  padding: 10px 20px; /* Thêm padding cho các item */
+  color: #ccc; /* Màu chữ sáng */
+  font-size: 14px; /* Kích thước chữ */
+  transition: background-color 0.3s ease; /* Hiệu ứng nền */
+}
+
+/* Hover effect for dropdown items */
+.dropdown-item:hover {
+  background-color: #495057; /* Màu nền khi hover */
+  color: white; /* Màu chữ sáng lên */
+}
 
 </style>

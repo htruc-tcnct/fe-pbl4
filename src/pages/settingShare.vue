@@ -67,15 +67,11 @@
                 </select>
               </div>
               <div class="col-3" v-if="selectedAccess === 'Everyone'">
-                <select
-                  class="form-select ms-2 border-0"
-                  style="background-color: #f2f2f2"
-                  v-model="selectedOption"
-                >
-                  <option value="Viewer">Viewer</option>
-                  <option value="Edit">Edit</option>
-                </select>
-              </div>
+  <label class="form-edit ms-2 border-0" style="background-color: #f2f2f2">
+    Edit
+  </label>
+</div>
+
             </div>
             <p
               v-if="selectedAccess === 'Restricted'"
@@ -373,16 +369,6 @@ button {
   margin-bottom: 10px;
 }
 
-.access-option .form-select {
-  border: none;
-  font-size: 14px;
-  color: #555; /* Màu xám trung tính */
-}
-
-.access-option .form-select:hover {
-  background-color: #f2f2f2; /* Đổi màu nền khi hover */
-}
-
 p.text-muted {
   font-size: 12px;
   color: #666; /* Màu xám cho đoạn text nhỏ */
@@ -402,6 +388,14 @@ button.btn-outline-primary:hover {
 button.rounded-pill {
   border-radius: 50px; /* Nút bo tròn */
   padding: 8px 16px;
+}
+.form-edit {
+  background-color: #f2f2f2;
+  border: 1px solid #ddd;
+  border-radius: 4px; /* Làm tròn góc cho phần tử */
+  padding: 8px 12px; /* Thêm padding để các phần tử không bị dính vào nhau */
+  font-size: 16px; /* Đảm bảo font nhìn rõ và dễ đọc */
+  transition: all 0.3s ease; /* Thêm hiệu ứng chuyển đổi mượt mà */
 }
 
 </style>

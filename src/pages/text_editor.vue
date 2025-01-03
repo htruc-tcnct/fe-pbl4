@@ -669,17 +669,6 @@ var pri;
 let arrContentForCtrlV = [];
 let arrdivStyle = [];
 
-const ShowCode = () => {
-  showCode.value.dataset.active = !active;
-  active = !active;
-  if (active) {
-    contentDiv.value.textContent = contentDiv.value.innerHTML;
-    contentDiv.value.setAttribute("contenteditable", false);
-  } else {
-    contentDiv.value.innerHTML = contentDiv.value.textContent;
-    contentDiv.value.setAttribute("contenteditable", true);
-  }
-};
 const XuLyNut = (event) => {
   // không cần xử lý phím mũi tên trái phải
   if (
@@ -1359,10 +1348,6 @@ function updateDetele(Kitu) {
     console.log(`không tìm thấy div với id ${Kitu.id} để xóa`);
   }
 }
-function updateId(idupdated) {
-  const divToUpdate = document.getElementById(idupdated.oldId);
-  divToUpdate.id = idupdated.newId;
-}
 
 function updateStyle(divNeedUpdateStyle) {
   // Tìm kiếm thẻ <div> theo ID
@@ -1549,24 +1534,6 @@ function XuLyGoODauContent(currentDiv, key) {
     divStyle.UserAndDoc = idUserAndIdDocument;
     socket.emit("update-style", JSON.stringify(divStyle));
   }
-}
-
-// xử lý gõ khi content trống
-function hasDivInContent() {
-  // Lấy thẻ div với id là "content"
-  const contentDiv = document.getElementById("content");
-
-  // Kiểm tra xem thẻ đó có tồn tại hay không
-  if (contentDiv) {
-    // Sử dụng querySelector để tìm thẻ div bên trong
-    const innerDiv = contentDiv.querySelector("div");
-
-    // Nếu tìm thấy thẻ div nào đó thì trả về true, ngược lại false
-    return innerDiv !== null;
-  }
-
-  // Nếu không tìm thấy thẻ content, trả về false
-  return false;
 }
 
 // xử lý content trống
@@ -2465,16 +2432,6 @@ function checkConflict(element, divStyle) {
   }
 }
 
-// xử lý căn lề
-// hàm trả về chiều rộng content
-function getContentWidth() {
-  const content = document.getElementById("content");
-  if (content) {
-    return content.getBoundingClientRect().width;
-  }
-  return 0; // Trả về 0 nếu phần tử không tồn tại
-}
-
 // lấy phần tử nằm ở đầu của 1 hàng
 function findLeftMostInSameRow(targetId) {
   const targetElement = document.getElementById(targetId);
@@ -2847,13 +2804,13 @@ onMounted(() => {
   showCode.value = document.querySelector("#show-code");
   contentDiv.value = document.querySelector("#content");
   contentDiv.value.innerHTML = `
-        <div id=""></div><br>
+        <div id="1:1"></div><br>
   `;
   ``;
 });
 const exportToDocxToSent = async () => {
   try {
-    // Lấy phần tử HTML chứa nội dung cần xuất
+    // Lấy phần tử HTML chứa nội dung cần xuất`
     const contentElement = document.getElementById("content");
     const divElements = contentElement.querySelectorAll("div"); // Lấy tất cả các <div> bên trong
 

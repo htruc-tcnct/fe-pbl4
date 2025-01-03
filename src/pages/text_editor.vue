@@ -233,7 +233,6 @@ function convertDocxXmlToHtml(xmlContent) {
   let htmlContent = ""; // Chứa nội dung HTML
   let previousId = null; // Lưu ID của phần tử trước đó
   const charDataArray = []; // Lưu thông tin dữ liệu của từng ký tự
-
   // Duyệt qua từng đoạn văn
   for (const p of paragraphs) {
     let paragraphHtml = ""; // HTML của đoạn văn hiện tại
@@ -374,7 +373,12 @@ function convertDocxXmlToHtml(xmlContent) {
 
   // Cập nhật nội dung HTML cho phần tử #content
   document.getElementById("content").innerHTML = htmlContent;
-
+  console.log("paragraphs.length.", paragraphs.length);
+  // nếu là file trỗng
+  if (paragraphs.length === 0) {
+    console.log("No paragraphs found.");
+    document.getElementById("content").innerHTML = `<div id=""></div><br>`;
+  }
   return { htmlContent, charDataArray }; // Trả về HTML và dữ liệu ký tự
 }
 // hàm này var với hàm đã có

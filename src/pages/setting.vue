@@ -75,6 +75,7 @@ export default {
     },
   },
   setup() {
+    
     const name = ref("");
     const dateOfBirth = ref("");
     const email = ref("");

@@ -3197,7 +3197,7 @@ const handleLogout = async () => {
         />
         <hr style="border: none; border-top: 3px solid white; margin: 20px 0" />
         <div
-          class="d-flex justify-content-start align-items-center gap-3 custom-div"
+          class="d-flex justify-content-start align-items-center gap-3  custom-div"
         >
           <!-- Toolbar buttons -->
           <button
@@ -3364,7 +3364,7 @@ input[type="color"] {
   padding: 10px 15px; /* Khoảng cách bên trong */
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Thêm bóng đổ nhẹ */
   transition: all 0.3s ease-in-out; /* Hiệu ứng khi thay đổi */
-  width: 60%; /* Đặt chiều rộng div chiếm 75% trang */
+  width: 1092px !important; /* Đặt chiều rộng div chiếm 75% trang */
   margin: 0 auto; /* Căn giữa div theo chiều ngang */
   display: flex; /* Sử dụng Flexbox */
   justify-content: space-evenly; /* Căn đều các button */
@@ -3385,7 +3385,7 @@ input[type="color"] {
 /* Dropdown Item Styling */
 .dropdown-item {
   padding: 10px 20px; /* Thêm padding cho các item */
-  color: #ccc; /* Màu chữ sáng */
+  color: #020202; /* Màu chữ sáng */
   font-size: 14px; /* Kích thước chữ */
   transition: background-color 0.3s ease; /* Hiệu ứng nền */
 }

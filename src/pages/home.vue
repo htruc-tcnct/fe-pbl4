@@ -6,7 +6,7 @@
     >
       <div class="d-flex align-items-center">
         <img
-          src="../assets/logo.png"
+          src="../assets/logohome.png"
           alt="Logo"
           class="img-responsive"
           style="max-width: 3em; margin: 0 auto"

@@ -15,7 +15,7 @@ import { saveAs } from "file-saver";
 import { useRouter } from "vue-router";
 import { socket } from "../socket";
 import SendMail from "./sendMail.vue";
-
+let avatarUrl = ref("");
 let documentDetail = ref("");
 var idUser = localStorage.getItem("idUser"); // tạm để test
 const props = defineProps(["id", "ownerIdDocument"]);
@@ -55,6 +55,29 @@ const copyIDToClipboard = () => {
     }
   }
 };
+const loadUserAvatar = async () => {
+  try {
+    const result = await axios.get(
+      `${import.meta.env.VITE_SERVER_URL}/user/${ownerId}`,
+      {
+        withCredentials: true,
+      }
+    );
+    if (result.data && result.data.avatar) {
+      avatarUrl.value = `${
+        import.meta.env.VITE_SERVER_URL
+      }/${result.data.avatar.replace(/\\/g, "/")}`;
+    } else {
+      avatarUrl.value =
+        "https://danviet.vn/loat-hinh-anh-dep-me-man-ve-dai-duong-bao-la-20221013095215296.htm";
+    }
+  } catch (err) {
+    console.error("Error loading user avatar:", err);
+    avatarUrl.value =
+      "https://danviet.vn/loat-hinh-anh-dep-me-man-ve-dai-duong-bao-la-20221013095215296.htm";
+  }
+};
+// Gọi hàm khi component được gắn vào DOM
 
 const fetchDocumentInfor = async () => {
   try {
@@ -91,6 +114,8 @@ const fetchGoToDocumentInfor = async () => {
   }
 };
 onMounted(async () => {
+  loadUserAvatar();
+
   fetchDocumentInfor();
   const idUser = localStorage.getItem("idUser");
   // console.log(":::::::::::::::::::::::::", props.ownerIdDocument);
@@ -3025,11 +3050,12 @@ const handleLogout = async () => {
         <div
           class="d-flex justify-content-start align-items-center mb-2 position-relative"
         >
-          <img
-            src="../assets/logo.png"
-            alt="Logo"
-            style="height: 50px; margin-right: 10px"
-          />
+          <a href="/home">
+            <img
+              src="../assets/logotxt.png"
+              alt="Logo"
+              style="height: 50px; margin-right: 10px"
+          /></a>
           <input
             type="text"
             class="border py-2 px-3 me-4 rounded"
@@ -3136,31 +3162,43 @@ const handleLogout = async () => {
               </li>
             </ul>
           </div>
-          <div class="dropdown position-absolute top-0 end-0 custom-dropdown">
-            <button
-              class="btn custom-share-btn dropdown-toggle"
-              type="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              Share
-            </button>
-
-            <ul class="dropdown-menu dropdown-menu-dark">
-              <li>
-                <a
-                  class="dropdown-item active"
-                  href="#"
-                  @click="copyIDToClipboard"
-                  >Copy Id</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" @click="showEmailForm"
-                  >Email</a
-                >
-              </li>
-            </ul>
+          <div
+            class="d-flex align-items-center position-absolute top-0 end-0"
+            style="max-height: 50px"
+          >
+            <!-- Avatar -->
+            <img
+              :src="avatarUrl"
+              class="rounded-circle"
+              alt="Avatar"
+              style="width: 40px; height: 40px; margin-right: 8px"
+            />
+            <!-- Share Button Dropdown -->
+            <div class="dropdown custom-dropdown">
+              <button
+                class="btn custom-share-btn dropdown-toggle"
+                type="button"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+              >
+                Share
+              </button>
+              <ul class="dropdown-menu dropdown-menu-dark">
+                <li>
+                  <a
+                    class="dropdown-item active"
+                    href="#"
+                    @click="copyIDToClipboard"
+                    >Copy Id</a
+                  >
+                </li>
+                <li>
+                  <a class="dropdown-item" href="#" @click="showEmailForm"
+                    >Email</a
+                  >
+                </li>
+              </ul>
+            </div>
           </div>
 
           <!-- Color Picker -->
@@ -3286,6 +3324,7 @@ const handleLogout = async () => {
   border: 2px solid #ccc; /* Viền nhạt */
   padding: 50px; /* Padding để giống khổ giấy A4 */
   box-sizing: border-box; /* Bao gồm padding và border trong kích thước */
+
   overflow: auto; /* Hiển thị cuộn nếu nội dung vượt quá */
   background-color: white; /* Nền trắng giống giấy */
 }
@@ -3329,6 +3368,7 @@ input[type="color"] {
 .custom-dropdown {
   width: 100px; /* Chiều rộng của dropdown */
   height: auto; /* Đặt chiều cao tự động (có thể cố định nếu cần) */
+  margin-left: 5px;
   padding: 5px; /* Khoảng cách bên trong */
   box-sizing: border-box; /* Đảm bảo padding không ảnh hưởng đến kích thước */
 }

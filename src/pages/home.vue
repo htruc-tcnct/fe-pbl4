@@ -437,9 +437,12 @@ const checkSessionStatus = async () => {
     if (result.data && result.data.name) {
       email.value = result.data.email;
       name.value = result.data.name;
-      avatarUrl.value =
-        result.data.avatar ||
-        "https://lh3.googleusercontent.com/a/default-avatar";
+      avatarUrl.value = result.data.avatar
+        ? `${import.meta.env.VITE_SERVER_URL}/${result.data.avatar.replace(
+            /\\/g,
+            "/"
+          )}`
+        : "https://danviet.vn/loat-hinh-anh-dep-me-man-ve-dai-duong-bao-la-20221013095215296.htm";
 
       fetchDocuments();
     } else {

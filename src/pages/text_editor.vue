@@ -3176,9 +3176,9 @@ const handleLogout = async () => {
       Share
     </button>
 
-    <ul class="dropdown-menu dropdown-menu-dark">
+    <ul class="dropdown-menu">
       <li>
-        <a class="dropdown-item active" href="#" @click="copyIDToClipboard">Copy Id</a>
+        <a class="dropdown-item " href="#" @click="copyIDToClipboard">Copy Id</a>
       </li>
       <li>
         <a class="dropdown-item" href="#" @click="showEmailForm">Email</a>

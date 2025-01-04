@@ -30,6 +30,53 @@ const router = useRouter();
 const cancelSendEmail = () => {
   emailFormVisible.value = false;
 };
+const linkImg = new Set();
+socket.on("update-user-list", async ({ documentId, users }) => {
+  if (documentId !== props.id) {
+    return;
+  }
+  console.log(`Updated user list for document ${documentId}:`, users);
+
+  // Lấy phần tử <ul> từ DOM
+  const usersImgUl = document.getElementById("users-img");
+
+  // Làm sạch danh sách hiện tại trong Set để đồng bộ với danh sách mới
+  linkImg.clear();
+
+  // Tạo DocumentFragment để thêm ảnh một cách hiệu quả
+  const fragment = document.createDocumentFragment();
+
+  // Duyệt qua từng userId để tạo ảnh đại diện
+  for (const userId of users) {
+    try {
+      const avatarUrl = await loadUserAvatar(userId); // Lấy URL ảnh đại diện
+
+      // Nếu URL chưa tồn tại trong Set, thêm vào Set và Fragment
+      if (!linkImg.has(avatarUrl)) {
+        linkImg.add(avatarUrl);
+
+        const img = document.createElement("img"); // Tạo thẻ <img>
+        img.src = avatarUrl; // Gán URL ảnh vào thuộc tính src
+        img.alt = "Avatar"; // Gán thuộc tính alt
+        img.classList.add("rounded-circle"); // Thêm lớp CSS cho ảnh
+        img.style.width = "40px"; // CSS inline cho kích thước
+        img.style.height = "40px";
+        img.style.marginRight = "8px";
+
+        fragment.appendChild(img); // Thêm ảnh vào Fragment
+      }
+    } catch (error) {
+      console.error(`Failed to load avatar for user ${userId}:`, error);
+    }
+  }
+
+  // Làm sạch nội dung <ul> và thêm các ảnh từ Fragment vào DOM
+  usersImgUl.innerHTML = "";
+  usersImgUl.appendChild(fragment);
+
+  console.log("Current linkImg Set: ", linkImg);
+});
+
 var idDoc = props.id;
 let documentTitleDisplay = ref("");
 let documentFull = ref(null);
@@ -43,6 +90,11 @@ const copyIDToClipboard = () => {
     console.error("Lỗi khi sao chép mã vào clipboard:", err);
     const textArea = document.createElement("textarea");
     textArea.value = documentDetail.value.shareCode;
+    textArea.style.position = "absolute";
+    textArea.style.opacity = "0";
+    textArea.style.height = "0";
+    textArea.style.width = "0";
+    textArea.style.zIndex = "-1";
     document.body.appendChild(textArea);
     textArea.select();
     try {
@@ -55,28 +107,28 @@ const copyIDToClipboard = () => {
     }
   }
 };
-const loadUserAvatar = async () => {
+const loadUserAvatar = async (userId) => {
   try {
     const result = await axios.get(
-      `${import.meta.env.VITE_SERVER_URL}/user/${ownerId}`,
-      {
-        withCredentials: true,
-      }
+      `${import.meta.env.VITE_SERVER_URL}/user/${userId}`,
+      { withCredentials: true }
     );
     if (result.data && result.data.avatar) {
-      avatarUrl.value = `${
-        import.meta.env.VITE_SERVER_URL
-      }/${result.data.avatar.replace(/\\/g, "/")}`;
+      return `${import.meta.env.VITE_SERVER_URL}/${result.data.avatar.replace(
+        /\\/g,
+        "/"
+      )}`;
     } else {
-      avatarUrl.value =
-        "https://danviet.vn/loat-hinh-anh-dep-me-man-ve-dai-duong-bao-la-20221013095215296.htm";
+      // URL mặc định nếu không có avatar
+      return "https://danviet.vn/loat-hinh-anh-dep-me-man-ve-dai-duong-bao-la-20221013095215296.htm";
     }
   } catch (err) {
     console.error("Error loading user avatar:", err);
-    avatarUrl.value =
-      "https://danviet.vn/loat-hinh-anh-dep-me-man-ve-dai-duong-bao-la-20221013095215296.htm";
+    // URL mặc định nếu có lỗi
+    return "https://danviet.vn/loat-hinh-anh-dep-me-man-ve-dai-duong-bao-la-20221013095215296.htm";
   }
 };
+
 // Gọi hàm khi component được gắn vào DOM
 
 const fetchDocumentInfor = async () => {
@@ -90,7 +142,6 @@ const fetchDocumentInfor = async () => {
     documentDetail.value = result.data.document;
     fileNameAddress.value = result.data.document.documentPath;
     shareCodeFromDoc.value = result.data.document.shareCode;
-    console.log("Thông tin  tài liệu documentFull:", shareCodeFromDoc.value);
     // console.log("Thông tin tài liệu:", documentDetail.value);
     documentTitleDisplay.value = documentDetail.value.documentTitle;
   } catch (error) {
@@ -114,8 +165,6 @@ const fetchGoToDocumentInfor = async () => {
   }
 };
 onMounted(async () => {
-  loadUserAvatar();
-
   fetchDocumentInfor();
   const idUser = localStorage.getItem("idUser");
   // console.log(":::::::::::::::::::::::::", props.ownerIdDocument);
@@ -3019,6 +3068,12 @@ onBeforeUnmount(async () => {
 
   if (localStorage.getItem("idUser") == localStorage.getItem("idOwn")) {
   }
+  const idUser = localStorage.getItem("idUser");
+  const documentId = localStorage.getItem("documentId");
+  socket.emit(
+    "decor-disconnect",
+    JSON.stringify({ idUser: idUser, documentId: documentId })
+  );
   socket.disconnect();
   // contentDiv.value.innerHTML = "";
 });
@@ -3166,13 +3221,7 @@ const handleLogout = async () => {
             class="d-flex align-items-center position-absolute top-0 end-0"
             style="max-height: 50px"
           >
-            <!-- Avatar -->
-            <img
-              :src="avatarUrl"
-              class="rounded-circle"
-              alt="Avatar"
-              style="width: 40px; height: 40px; margin-right: 8px"
-            />
+            <ul class="d-flex" id="users-img"></ul>
             <!-- Share Button Dropdown -->
             <div class="dropdown custom-dropdown">
               <button

@@ -35,7 +35,7 @@ socket.on("connect", () => {
     // console.log("idUserAndIdDocument ", idUserAndIdDocument);
     // Gửi payload
     socket.emit("register", JSON.stringify(payload), (response) => {
-      console.log("response ", response);
+      // console.log("response ", response);
       // console.log("Payload successfully registered:", payload);
 
       socket.emit("request-priority", JSON.stringify(idUserAndIdDocument));

@@ -3043,11 +3043,14 @@ const handleLogout = async () => {
         <div
           class="d-flex justify-content-start align-items-center mb-2 position-relative"
         >
+        <a href="/home">
           <img
             src="../assets/logotxt.png"
             alt="Logo"
             style="height: 50px; margin-right: 10px"
           />
+        </a>
+          
           <input
 
 

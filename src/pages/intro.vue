@@ -30,6 +30,7 @@
             Register new account
           </button>
         </div>
+        <hr style="border: 1px solid #000; margin: 20px 0" />
 
         <p class="text-center fw-bold">Already have an account?</p>
         <div class="text-center">

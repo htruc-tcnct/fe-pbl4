@@ -39,6 +39,7 @@ socket.on("connect", () => {
       // console.log("Payload successfully registered:", payload);
 
       socket.emit("request-priority", JSON.stringify(idUserAndIdDocument));
+      
     });
   } else {
     console.error("Invalid data in localStorage:", { idOw, documentId });
@@ -56,3 +57,7 @@ socket.on("foo", (...args) => {
 socket.on("bar", (...args) => {
   state.barEvents.push(args);
 });
+socket.on("give-priority", (data) => {
+  console.log(`Priority: ${data.priority}, Avatar: ${data.avatar}`);
+});
+

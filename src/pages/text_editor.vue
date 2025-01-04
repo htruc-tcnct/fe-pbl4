@@ -1,6 +1,7 @@
 <script setup>
 //import của trực
 import { ref, onMounted, onBeforeUnmount } from "vue";
+
 import axios from "axios";
 import PizZip from "pizzip";
 import Docxtemplater from "docxtemplater";
@@ -16,6 +17,7 @@ import { useRouter } from "vue-router";
 import { socket } from "../socket";
 import SendMail from "./sendMail.vue";
 
+let avatarUrl = ref("");
 let documentDetail = ref("");
 var idUser = localStorage.getItem("idUser"); // tạm để test
 const props = defineProps(["id", "ownerIdDocument"]);
@@ -55,6 +57,36 @@ const copyIDToClipboard = () => {
     }
   }
 };
+
+const loadUserAvatar = async () => {
+  try {
+    const result = await axios.get(
+      `${import.meta.env.VITE_SERVER_URL}/user/${ownerId}`,
+      {
+        withCredentials: true,
+      }
+    );
+
+    if (result.data && result.data.avatar) {
+      avatarUrl.value = `${import.meta.env.VITE_SERVER_URL}/${result.data.avatar.replace(
+        /\\/g,
+        "/"
+      )}`;
+    } else {
+      avatarUrl.value =
+        "https://danviet.vn/loat-hinh-anh-dep-me-man-ve-dai-duong-bao-la-20221013095215296.htm";
+    }
+  } catch (err) {
+    console.error("Error loading user avatar:", err);
+    avatarUrl.value =
+      "https://danviet.vn/loat-hinh-anh-dep-me-man-ve-dai-duong-bao-la-20221013095215296.htm";
+  }
+};
+
+// Gọi hàm khi component được gắn vào DOM
+onMounted(() => {
+  loadUserAvatar();
+});
 
 const fetchDocumentInfor = async () => {
   try {
@@ -3012,11 +3044,13 @@ const handleLogout = async () => {
           class="d-flex justify-content-start align-items-center mb-2 position-relative"
         >
           <img
-            src="../assets/logo.png"
+            src="../assets/logotxt.png"
             alt="Logo"
             style="height: 50px; margin-right: 10px"
           />
           <input
+
+
             type="text"
             class="border py-2 px-3 me-4 rounded"
             placeholder="Document Title"
@@ -3122,32 +3156,36 @@ const handleLogout = async () => {
               </li>
             </ul>
           </div>
-          <div class="dropdown position-absolute top-0 end-0 custom-dropdown">
-            <button
-              class="btn custom-share-btn dropdown-toggle"
-              type="button"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
-            >
-              Share
-            </button>
+          <div class="d-flex align-items-center position-absolute top-0 end-0" style="max-height: 50px">
+  <!-- Avatar -->
+  <img
+    :src="avatarUrl"
+    class="rounded-circle"
+    alt="Avatar"
+    style="width: 40px; height: 40px; margin-right: 8px;"
+  />
 
-            <ul class="dropdown-menu dropdown-menu-dark">
-              <li>
-                <a
-                  class="dropdown-item active"
-                  href="#"
-                  @click="copyIDToClipboard"
-                  >Copy Id</a
-                >
-              </li>
-              <li>
-                <a class="dropdown-item" href="#" @click="showEmailForm"
-                  >Email</a
-                >
-              </li>
-            </ul>
-          </div>
+  <!-- Share Button Dropdown -->
+  <div class="dropdown custom-dropdown">
+    <button
+      class="btn custom-share-btn dropdown-toggle"
+      type="button"
+      data-bs-toggle="dropdown"
+      aria-expanded="false"
+    >
+      Share
+    </button>
+
+    <ul class="dropdown-menu dropdown-menu-dark">
+      <li>
+        <a class="dropdown-item active" href="#" @click="copyIDToClipboard">Copy Id</a>
+      </li>
+      <li>
+        <a class="dropdown-item" href="#" @click="showEmailForm">Email</a>
+      </li>
+    </ul>
+  </div>
+</div>
 
           <!-- Color Picker -->
         </div>
@@ -3317,6 +3355,7 @@ input[type="color"] {
   height: auto; /* Đặt chiều cao tự động (có thể cố định nếu cần) */
   padding: 5px; /* Khoảng cách bên trong */
   box-sizing: border-box; /* Đảm bảo padding không ảnh hưởng đến kích thước */
+  margin-left: 5px;
 }
 .custom-div {
   background-color: #f9f9f9; /* Nền màu sáng nhạt */
@@ -3356,4 +3395,13 @@ input[type="color"] {
   background-color: #495057; /* Màu nền khi hover */
   color: white; /* Màu chữ sáng lên */
 }
+
+.custom-share-btn {
+  padding: 8px 16px; /* Điều chỉnh kích thước nút nếu cần */
+}
+
+.rounded-circle {
+  border: 2px solid transparent; /* Để ảnh nhìn cân đối */
+}
+
 </style>

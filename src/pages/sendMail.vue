@@ -48,21 +48,24 @@
 import { ref, defineProps, defineEmits } from "vue";
 import axios from "axios";
 
-const props = defineProps(["idDoc"]);
+const props = defineProps(["idDoc", "shareCode"]);
 const emit = defineEmits(["cancel"]);
 const idDocument = localStorage.getItem("documentId");
 const emailToShare = ref("");
 const emailMessage = ref("");
 const emailFormVisible = ref(false);
 const emailSent = ref(false);
-
+console.log("shareCode: ", props.shareCode);
 const sendToEmail = async () => {
   try {
+    const idOwn = localStorage.getItem("idOwn");
     const response = await axios.post(
       `${import.meta.env.VITE_SERVER_URL}/documents/share-to-email`,
       {
         email: emailToShare.value,
         id: idDocument,
+        ownerId: idOwn,
+        shareCode: props.shareCode,
         message: emailMessage.value,
       }
     );

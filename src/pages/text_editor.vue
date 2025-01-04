@@ -15,16 +15,18 @@ import { saveAs } from "file-saver";
 import { useRouter } from "vue-router";
 import { socket } from "../socket";
 import SendMail from "./sendMail.vue";
+
 let documentDetail = ref("");
 var idUser = localStorage.getItem("idUser"); // tạm để test
 const props = defineProps(["id", "ownerIdDocument"]);
+let ownerId = props.ownerIdDocument;
 const fileNameAddress = ref("");
-
+let shareCodeFromDoc = ref("");
 const emailFormVisible = ref(false);
 const showEmailForm = () => {
   emailFormVisible.value = true;
 };
-
+const router = useRouter();
 const cancelSendEmail = () => {
   emailFormVisible.value = false;
 };
@@ -32,10 +34,26 @@ var idDoc = props.id;
 let documentTitleDisplay = ref("");
 let documentFull = ref(null);
 const copyIDToClipboard = () => {
-  navigator.clipboard.writeText(documentDetail.value.shareCode).then(() => {
-    console.log("Đã sao chép mã vào clipboard.");
-    alert("Đã sao chép mã vào clipboard.");
-  });
+  try {
+    navigator.clipboard.writeText(documentDetail.value.shareCode).then(() => {
+      console.log("Đã sao chép mã vào clipboard.");
+      alert("Đã sao chép mã vào clipboard.");
+    });
+  } catch (err) {
+    console.error("Lỗi khi sao chép mã vào clipboard:", err);
+    const textArea = document.createElement("textarea");
+    textArea.value = documentDetail.value.shareCode;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand("copy");
+      alert("Share Code copied to clipboard!");
+      console.log("Copied to clipboard:", documentDetail.value.shareCode);
+    } catch (err) {
+      console.log("Error copying to clipboard using execCommand:", err);
+      alert("Failed to copy share code.");
+    }
+  }
 };
 
 const fetchDocumentInfor = async () => {
@@ -48,7 +66,9 @@ const fetchDocumentInfor = async () => {
     );
     documentDetail.value = result.data.document;
     fileNameAddress.value = result.data.document.documentPath;
-    console.log("Thông tin tài liệu:", documentDetail.value);
+    shareCodeFromDoc.value = result.data.document.shareCode;
+    console.log("Thông tin  tài liệu documentFull:", shareCodeFromDoc.value);
+    // console.log("Thông tin tài liệu:", documentDetail.value);
     documentTitleDisplay.value = documentDetail.value.documentTitle;
   } catch (error) {
     console.error("Lỗi khi lấy thông tin tài liệu:", error);
@@ -64,17 +84,30 @@ const fetchGoToDocumentInfor = async () => {
       }
     );
     documentFull.value = result.data.document;
+
     // console.log("Thông tin tài liệu documentFull:", documentFull.value);
   } catch (error) {
     console.error("Lỗi khi lấy thông tin tài liệu:", error);
   }
 };
-onMounted(() => {
+onMounted(async () => {
   fetchDocumentInfor();
   const idUser = localStorage.getItem("idUser");
   // console.log(":::::::::::::::::::::::::", props.ownerIdDocument);
   // console.log(":::::::::::::::::::::::::", idUser);
   copyRoomID();
+  if (!idUser) {
+    console.log("Chưa đăng nhập");
+    router.push("/");
+    localStorage.removeAllRanges();
+  }
+  const idOwn = localStorage.getItem("idOwn");
+  const idDoc = localStorage.getItem("documentId");
+
+  localStorage.setItem("documentId", props.id);
+  if (!idOwn) {
+    localStorage.setItem("idOwn", ownerId);
+  }
 });
 const copyRoomID = () => {
   if (documentDetail.value) {
@@ -2743,14 +2776,14 @@ onMounted(() => {
     // gán tạm idUser và idDoc là pri để test
     idUser = localStorage.getItem("idUser");
     idDoc = props.id;
-    console.log("idDOC: ", idDoc);
+    // console.log("idDOC: ", idDoc);
     // // Tạo đối tượng idUserAndIdDocument sau khi đã nhận được giá trị
     const idUserAndIdDocument = {
       idUser: idUser,
       idDoc: idDoc,
       idOwner: props.ownerIdDocument,
     };
-    console.log("idUserAndIdDocument:  ", idUserAndIdDocument, " pri ", pri);
+    // console.log("idUserAndIdDocument:  ", idUserAndIdDocument, " pri ", pri);
     // Gửi yêu cầu sau khi nhận đủ thông tin
     socket.emit("request-edited-content", JSON.stringify(idUserAndIdDocument));
   });
@@ -2951,6 +2984,25 @@ onBeforeUnmount(async () => {
   socket.disconnect();
   // contentDiv.value.innerHTML = "";
 });
+
+const handleLogout = async () => {
+  try {
+    await axios.post(
+      `${import.meta.env.VITE_SERVER_URL}/user/logout`,
+      {},
+      {
+        withCredentials: true,
+      }
+    );
+
+    store.commit("setUser", null);
+    router.push("/");
+    console.log("Logged out successfully");
+  } catch (error) {
+    console.error("Error logging out:", error);
+    router.push("/");
+  }
+};
 </script>
 
 <template>
@@ -3103,6 +3155,7 @@ onBeforeUnmount(async () => {
         <send-mail
           v-if="emailFormVisible"
           :id-doc="idDocument"
+          :share-code="shareCodeFromDoc"
           @cancel="cancelSendEmail"
         />
         <hr style="border: none; border-top: 3px solid white; margin: 20px 0" />

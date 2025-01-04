@@ -27,16 +27,16 @@ socket.on("connect", () => {
       documentId: documentId.trim(),
       ownerId: idOw.trim(),
     };
-    console.log("payload ", payload);
+    // console.log("payload ", payload);
     const idUserAndIdDocument = {
       idUser: userId.trim(),
       idDoc: documentId.trim(),
     };
-    console.log("idUserAndIdDocument ", idUserAndIdDocument);
+    // console.log("idUserAndIdDocument ", idUserAndIdDocument);
     // Gửi payload
     socket.emit("register", JSON.stringify(payload), (response) => {
       console.log("response ", response);
-      console.log("Payload successfully registered:", payload);
+      // console.log("Payload successfully registered:", payload);
 
       socket.emit("request-priority", JSON.stringify(idUserAndIdDocument));
     });

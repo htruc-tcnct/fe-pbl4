@@ -464,6 +464,9 @@ const handleLogout = async () => {
     );
 
     store.commit("setUser", null);
+    localStorage.removeItem("idUser");
+    localStorage.removeItem("documentId");
+    localStorage.removeItem("idOwn");
     router.push("/");
   } catch (error) {
     console.error("Error logging out:", error);

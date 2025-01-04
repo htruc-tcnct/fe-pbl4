@@ -7,6 +7,7 @@
       <send-mail
         v-if="emailFormVisible"
         :id-doc="props.idDoc"
+        :share-code="shareCode"
         @cancel="CancelSendEmail"
       />
 
@@ -108,6 +109,7 @@ const avatarUrl = ref("");
 const userName = ref("User");
 const documentName = ref("");
 const idDocument = ref("");
+const shareCode = ref("");
 const emailToShare = ref("");
 const emailMessage = ref("");
 const selectedAccess = ref("Restricted");
@@ -132,8 +134,12 @@ const fetchUserInfo = async () => {
     );
     if (response.data) {
       userName.value = response.data.name || "User";
-      avatarUrl.value =
-        response.data.avatar || "https://example.com/default-avatar.png";
+      avatarUrl.value = response.data.avatar
+        ? `${import.meta.env.VITE_SERVER_URL}/${response.data.avatar.replace(
+            /\\/g,
+            "/"
+          )}`
+        : "https://lh3.googleusercontent.com/a/default-avatar-url";
     }
   } catch (error) {
     console.error("Error fetching user info:", error);
@@ -157,7 +163,9 @@ const fetchDocumentInfo = async () => {
       idDocument.value = doc.shareCode;
       selectedAccess.value = doc.accessLevel;
 
-      console.log("Fetched document:", response.data.document);
+      // console.log("Fetched document:", response.data.document);
+      shareCode.value = response.data.document.shareCode;
+      console.log("shareCode:", shareCode.value);
     } else {
       console.error("Invalid response structure:", response.data);
     }

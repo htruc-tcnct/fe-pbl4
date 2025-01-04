@@ -9,32 +9,34 @@
           src="../assets/logo.png"
           alt="Logo"
           class="img-responsive"
-          style="max-width: 2em; margin: 0 auto"
+          style="max-width: 3em; margin: 0 auto"
         />
         <div class="logo fs-3 fw-bold ms-2">DOCSYNC</div>
       </div>
 
       <div
-        class="input-group d-flex justify-content-between"
-        style="max-width: 600px"
+        class="input-group d-flex justify-content-start"
+        style="max-width: 700px"
       >
         <input
           type="text"
-          class="form-control rounded-start-pill border-end-0"
+          class="form-control rounded-start-pill border-0 shadow-sm px-5"
           placeholder="Find your document"
-          aria-label="Search"
+          v-model="searchKeyword"
         />
-        <!-- Search Icon -->
         <button
           class="input-group-text bg-secondary-subtle rounded-end-pill border-start-0 py-2"
+          @click="handleSearch"
         >
-          <i class="fas fa-search fs-5 text-muted"></i>
+          <button class="btn-search" @click="handleSearch">
+            <i class="fas fa-search"></i>
+          </button>
         </button>
       </div>
 
       <div class="d-flex align-items-center" style="max-height: 50px">
         <button
-          class="btn btn-dark-subtle dropdown-toggle"
+          class="btn dropdown-toggle btn-account"
           type="button"
           id="dropdownMenuButton"
           data-bs-toggle="dropdown"
@@ -42,17 +44,17 @@
         >
           <img
             :src="avatarUrl"
-            class="rounded-circle"
+            class="rounded-circle custom-img-hover"
             alt="Avatar"
-            style="width: 40px; height: 40px"
+            style="width: 40px; height: 40px; margin-left: 140px"
           />
         </button>
         <ul
-          class="dropdown-menu dropdown-menu-end shadow"
+          class="dropdown-menu dropdown-menu-end shadow account-menu"
           aria-labelledby="dropdownMenuButton"
-          style="width: 300px; border-radius: 12px"
         >
-          <li class="text-center p-3">
+          <!-- Header Section -->
+          <li class="text-center p-3 account-header">
             <h6 class="fw-bold mb-0">{{ email }}</h6>
             <div class="position-relative">
               <img
@@ -62,31 +64,23 @@
                 style="width: 80px; height: 80px"
               />
             </div>
-
             <p class="text-muted mb-1">Hi, {{ name }}</p>
             <button
               @click="openSetting()"
-              class="btn btn-outline-primary btn-sm mb-3 py-2"
+              class="btn btn-outline-dark btn-sm mb-3 py-2"
             >
               Manage your Account
             </button>
           </li>
           <li><hr class="dropdown-divider" /></li>
+          <!-- Sign Out Section -->
           <li class="text-center">
             <button
-              class="btn btn-link text-dark d-flex justify-content-between w-100 px-3 py-2 align-items-center"
-              style="font-size: 14px"
-            ></button>
-          </li>
-
-          <li class="d-flex justify-content-end">
-            <button
               @click="handleLogout()"
-              class="btn btn-link text-dark d-flex align-items-end px-3 py-2 text-decoration-none"
-              style="font-size: 14px"
+              class="btn btn-dark text-white w-100 px-3 py-2"
             >
-              <i class="fas fa-sign-out-alt me-2 fs-5"></i>
-              <span class="fs-6 text-decoration-none fs-5"> Sign out</span>
+              <i class="fas fa-sign-out-alt me-2"></i>
+              Sign out
             </button>
           </li>
         </ul>
@@ -94,19 +88,17 @@
     </header>
     <SettingModal :visible="currentModal" @close="closeModal" />
 
-    <section class="join-section my-5 text-center">
-      <div class="input-group w-50 mx-auto">
+    <section class="join-section my-5 text-center custom-join-section">
+      <div class="input-group mx-auto join-group custom-width">
         <input
           type="text"
           class="form-control join-code"
           placeholder="Enter a join code"
           v-model="joinCode"
         />
-        <button class="btn btn-primary join-button" @click="joinDocument">
-          Join
-        </button>
+        <button class="btn-join join-button" @click="joinDocument">Join</button>
       </div>
-      <p v-if="errorMessageJoin" class="text-danger">
+      <p v-if="errorMessageJoin" class="text-danger mt-3">
         {{ errorMessageJoin }}
       </p>
     </section>
@@ -116,21 +108,23 @@
           <h2 class="mb-4">Assigned Activities</h2>
         </div>
         <div class="col-6 text-start">
-          <div class="dropdown">
+          <div class="dropdown custom-dropdown">
             <button
-              class="btn dropdown-toggle"
+              class="btn dropdown-toggle custom-btn"
               type="button"
               data-bs-toggle="dropdown"
               aria-expanded="true"
             >
               <i class="fas fa-plus"></i>
             </button>
-            <ul class="dropdown-menu dropdown-menu-dark">
+            <ul class="dropdown-menu custom-dropdown-menu">
               <li @click="handleCreateNewDoc">
-                <a class="dropdown-item active" href="#">New</a>
+                <a class="dropdown-item custom-dropdown-item" href="#">New</a>
               </li>
               <li @click="handleOpenExistingFile">
-                <a class="dropdown-item" href="#">Open exist file</a>
+                <a class="dropdown-item custom-dropdown-item" href="#"
+                  >Open exist file</a
+                >
               </li>
             </ul>
             <input
@@ -811,10 +805,64 @@ input.text-light.bg-dark.border-0:hover {
   width: 500px; /* Đảm bảo div co giãn theo màn hình */
 }
 .custom-join-section {
-  max-width: 600px; /* Đặt chiều rộng tối đa */
+  max-width: 700px; /* Đặt chiều rộng tối đa */
   margin: auto;
 }
 .container-fluid {
   padding: 0;
+}
+.custom-img-hover {
+  border: 3px solid transparent; /* Đường viền mặc định trong suốt */
+  border-radius: 50%; /* Đảm bảo bo tròn nếu ảnh là hình tròn */
+  transition: border-color 0.3s ease; /* Hiệu ứng chuyển màu viền mượt */
+}
+
+.custom-img-hover:hover {
+  border-color: white; /* Đổi viền thành màu trắng khi hover */
+}
+/* Style cho nút dropdown */
+.custom-btn {
+  background-color: rgb(180, 180, 191) !important;
+  color: rgb(37, 25, 8) !important;
+  border: 1px solid rgb(150, 150, 160);
+  border-radius: 8px;
+  padding: 10px 15px;
+  transition: all 0.3s ease;
+}
+
+.custom-btn:hover {
+  background-color: rgb(20, 12, 1) !important;
+  color: white !important;
+}
+
+/* Style cho dropdown-menu */
+.custom-dropdown-menu {
+  background-color: rgb(180, 180, 191) !important;
+  border: 1px solid rgb(150, 150, 160);
+  border-radius: 8px;
+  margin-top: 10px;
+  padding: 10px 0;
+}
+
+/* Style cho từng item */
+.custom-dropdown-item {
+  color: rgb(20, 12, 1) !important;
+  padding: 10px 20px;
+  transition: all 0.3s ease;
+}
+
+.custom-dropdown-item:hover {
+  background-color: rgb(20, 12, 1);
+  color: white !important;
+  border-radius: 4px;
+}
+
+/* Tạo shadow nhẹ cho dropdown */
+.custom-dropdown {
+  position: relative;
+}
+
+.custom-dropdown-menu {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 </style>

@@ -310,18 +310,32 @@ function convertDocxXmlToHtml(xmlContent) {
     }
 
     let charactersHtml = ""; // HTML của các ký tự trong đoạn văn
-
     // Duyệt qua từng phần tử chứa ký tự
     for (const r of runs) {
       const texts = r.getElementsByTagName("w:t"); // Lấy văn bản trong thẻ <w:t>
 
-      // Duyệt qua từng thẻ <w:t> để lấy nội dung
       for (const t of texts) {
-        let textContent = t.textContent || " "; // Lấy nội dung văn bản
+        // console.log("texts: ", t);
+
+        let textContent = t.textContent || " ";
+
+        // Nếu có thuộc tính xml:space hoặc nội dung chỉ là khoảng trắng
+        const preserveSpace = t.getAttribute("xml:space") === "preserve";
+        if (
+          preserveSpace ||
+          textContent == " " ||
+          textContent == "" ||
+          textContent.includes("\t")
+        ) {
+          textContent = textContent.replace(/ /g, "\u00A0"); // Giữ khoảng trắng
+        }
+
+        // Nếu nội dung có ký tự hiển thị, đánh dấu không rỗng
         if (textContent.trim() !== "") {
-          isParagraphEmpty = false; // Đánh dấu đoạn văn không rỗng
-        } else if (textContent === "") {
-          textContent = textContent.replace(/\s/g, "\u00A0");
+          isParagraphEmpty = false;
+          if (preserveSpace && textContent.startsWith(" ")) {
+            textContent = "\u00A0" + textContent.slice(1);
+          }
         }
 
         let styles = {}; // Lưu các kiểu dáng CSS
@@ -368,12 +382,12 @@ function convertDocxXmlToHtml(xmlContent) {
         // Tạo các phần tử div cho từng ký tự
         for (const char of textContent) {
           const charId = previousId ? spawnID(previousId, null) : `1:${pri}`;
-
           const styleString = Object.entries(styles)
             .map(([key, value]) => `${key}: ${value};`)
-            .join(" ");
+            .join("");
 
-          const charDiv = `<div id="${charId}" style="${styleString}">${char}</div>`;
+          let kitu = char === " " ? "&nbsp;" : char;
+          const charDiv = `<div id="${charId}" style="${styleString}">${kitu}</div>`;
 
           const charData = {
             id: charId,

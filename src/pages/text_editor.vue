@@ -320,9 +320,8 @@ function convertDocxXmlToHtml(xmlContent) {
         let textContent = t.textContent || " "; // Lấy nội dung văn bản
         if (textContent.trim() !== "") {
           isParagraphEmpty = false; // Đánh dấu đoạn văn không rỗng
-        }
-        if (textContent === " ") {
-          textContent = "\u00A0";
+        } else if (textContent === "") {
+          textContent = textContent.replace(/\s/g, "\u00A0");
         }
 
         let styles = {}; // Lưu các kiểu dáng CSS

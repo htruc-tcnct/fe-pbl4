@@ -132,6 +132,11 @@ function parseStyleString(styleString) {
 const handleFileInput = async (event) => {
   // Lấy file đầu tiên từ input
   const file = event.target.files[0];
+  if (file.size === 0) {
+    console.log("file is empty");
+    document.getElementById("content").innerHTML = `<div id=""></div><br>`;
+    return;
+  }
   if (file) {
     const contentDiv = document.getElementById("content");
 

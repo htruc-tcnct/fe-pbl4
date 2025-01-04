@@ -101,6 +101,7 @@ import SendMail from "./sendMail.vue"; // Import the SendMail component
 
 const props = defineProps(["idDoc", "visible"]);
 const emit = defineEmits(["close", "documentUpdated"]);
+const idUser = localStorage.getItem("idUser");
 
 // State variables
 const avatarUrl = ref("");
@@ -126,7 +127,7 @@ watch(
 const fetchUserInfo = async () => {
   try {
     const response = await axios.get(
-      `${import.meta.env.VITE_SERVER_URL}/user-info`,
+      `${import.meta.env.VITE_SERVER_URL}/user/${idUser}`,
       { withCredentials: true }
     );
     if (response.data) {
@@ -173,9 +174,23 @@ const copyLink = async () => {
   try {
     await navigator.clipboard.writeText(idDocument.value);
     alert("Share Code copied to clipboard!");
+    console.log("Copied to clipboard:", idDocument.value);
   } catch (err) {
-    console.error("Error copying to clipboard:", err);
-    alert("Failed to copy share code.");
+    console.log("Error copying to clipboard:", err);
+    // Sử dụng phương pháp sao chép thủ công nếu API clipboard không hoạt động
+    const textArea = document.createElement("textarea");
+    textArea.value = idDocument.value;
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand("copy");
+      alert("Share Code copied to clipboard!");
+      console.log("Copied to clipboard:", idDocument.value);
+    } catch (err) {
+      console.log("Error copying to clipboard using execCommand:", err);
+      alert("Failed to copy share code.");
+    }
+    document.body.removeChild(textArea);
   }
 };
 const onSubmit = async () => {

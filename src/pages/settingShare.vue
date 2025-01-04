@@ -7,6 +7,7 @@
       <send-mail
         v-if="emailFormVisible"
         :id-doc="props.idDoc"
+        :share-code="shareCode"
         @cancel="CancelSendEmail"
       />
 
@@ -108,6 +109,7 @@ const avatarUrl = ref("");
 const userName = ref("User");
 const documentName = ref("");
 const idDocument = ref("");
+const shareCode = ref("");
 const emailToShare = ref("");
 const emailMessage = ref("");
 const selectedAccess = ref("Restricted");
@@ -161,7 +163,9 @@ const fetchDocumentInfo = async () => {
       idDocument.value = doc.shareCode;
       selectedAccess.value = doc.accessLevel;
 
-      console.log("Fetched document:", response.data.document);
+      // console.log("Fetched document:", response.data.document);
+      shareCode.value = response.data.document.shareCode;
+      console.log("shareCode:", shareCode.value);
     } else {
       console.error("Invalid response structure:", response.data);
     }

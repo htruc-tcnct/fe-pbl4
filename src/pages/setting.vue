@@ -55,7 +55,7 @@
           />
         </div>
         <!-- Nút lưu -->
-        <button type="submit" class="btn btn-primary w-100">
+        <button type="submit" class="btn  w-100" style="background-color: #333; color: white;">
           Save Changes
         </button>
       </form>
@@ -179,12 +179,13 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.5); /* Nền mờ */
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 1000; /* Z-index cao để đè lên nội dung khác */
 }
+
 .modal-content {
   background: white;
   padding: 20px;
@@ -194,6 +195,7 @@ export default {
   text-align: center;
   position: relative;
 }
+
 .btn-close {
   position: absolute;
   top: 10px;
@@ -203,9 +205,11 @@ export default {
   font-size: 20px;
   cursor: pointer;
 }
+
 .form-label {
   margin-bottom: 5px;
 }
+
 .form-control:disabled {
   background-color: #e9ecef;
   opacity: 1;

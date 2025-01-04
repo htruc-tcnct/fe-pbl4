@@ -32,7 +32,8 @@
 
       <!-- Submit -->
       <div class="position-relative">
-        <button class="btn btn-primary w-100" @click="onSubmit">Create</button>
+        <button class="btn custom-btn w-100" @click="onSubmit">Create</button>
+
       </div>
     </div>
   </div>
@@ -144,5 +145,32 @@ const onSubmit = async () => {
 
 .form-control {
   margin-bottom: 15px;
+}
+.custom-btn {
+  background-color: rgb(20, 12, 1); /* Màu nền chủ đạo */
+  color: rgb(255, 255, 255); /* Màu chữ tương phản */
+  border: 1px solid rgb(20, 12, 1); /* Viền nhẹ cùng tông */
+  border-radius: 8px; /* Bo tròn góc */
+  padding: 12px 20px; /* Khoảng cách bên trong */
+  font-size: 16px; /* Cỡ chữ */
+  font-weight: 600; /* Chữ đậm */
+  text-align: center; /* Canh giữa chữ */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Đổ bóng nhẹ */
+  transition: all 0.3s ease; /* Hiệu ứng mượt */
+}
+
+.custom-btn:hover {
+  background-color: rgb(160, 160, 170); /* Màu nền tối hơn khi hover */
+  color: white; /* Chữ đổi thành màu trắng khi hover */
+  border-color: rgb(140, 140, 150); /* Viền tối hơn khi hover */
+  box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2); /* Đổ bóng sâu hơn */
+  transform: translateY(-2px); /* Nút nổi lên khi hover */
+}
+
+.custom-btn:active {
+  background-color: rgb(140, 140, 150); /* Màu nền đậm hơn khi click */
+  color: white; /* Chữ giữ nguyên màu trắng */
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2); /* Đổ bóng nhỏ hơn */
+  transform: translateY(1px); /* Nút nhấn xuống */
 }
 </style>

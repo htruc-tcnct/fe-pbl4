@@ -132,8 +132,12 @@ const fetchUserInfo = async () => {
     );
     if (response.data) {
       userName.value = response.data.name || "User";
-      avatarUrl.value =
-        response.data.avatar || "https://example.com/default-avatar.png";
+      avatarUrl.value = response.data.avatar
+        ? `${import.meta.env.VITE_SERVER_URL}/${response.data.avatar.replace(
+            /\\/g,
+            "/"
+          )}`
+        : "https://lh3.googleusercontent.com/a/default-avatar-url";
     }
   } catch (error) {
     console.error("Error fetching user info:", error);

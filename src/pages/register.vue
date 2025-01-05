@@ -207,6 +207,6 @@ onMounted(() => {
 
 .forgot-password-link:hover {
   text-decoration: underline !important;
-  color: #0056b3 !important;
+  color: #343a40 !important;
 }
 </style>

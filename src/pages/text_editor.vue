@@ -37,7 +37,6 @@ socket.on("update-user-list", async ({ documentId, users }) => {
   }
   console.log(`Updated user list for document ${documentId}:`, users);
 
-  // Lấy phần tử <ul> từ DOM
   const usersImgUl = document.getElementById("users-img");
 
   // Làm sạch danh sách hiện tại trong Set để đồng bộ với danh sách mới
@@ -46,24 +45,23 @@ socket.on("update-user-list", async ({ documentId, users }) => {
   // Tạo DocumentFragment để thêm ảnh một cách hiệu quả
   const fragment = document.createDocumentFragment();
 
-  // Duyệt qua từng userId để tạo ảnh đại diện
   for (const userId of users) {
     try {
-      const avatarUrl = await loadUserAvatar(userId); // Lấy URL ảnh đại diện
+      const { avatar, name } = await loadUserAvatar(userId); // Lấy URL ảnh và tên
 
-      // Nếu URL chưa tồn tại trong Set, thêm vào Set và Fragment
-      if (!linkImg.has(avatarUrl)) {
-        linkImg.add(avatarUrl);
+      if (!linkImg.has(avatar)) {
+        linkImg.add(avatar);
 
-        const img = document.createElement("img"); // Tạo thẻ <img>
-        img.src = avatarUrl; // Gán URL ảnh vào thuộc tính src
-        img.alt = "Avatar"; // Gán thuộc tính alt
-        img.classList.add("rounded-circle"); // Thêm lớp CSS cho ảnh
-        img.style.width = "40px"; // CSS inline cho kích thước
+        const img = document.createElement("img");
+        img.src = avatar; // URL ảnh
+        img.alt = name; // Alt là tên người dùng
+        img.title = name; // Hiển thị tên khi hover
+        img.classList.add("rounded-circle");
+        img.style.width = "40px";
         img.style.height = "40px";
         img.style.marginRight = "8px";
 
-        fragment.appendChild(img); // Thêm ảnh vào Fragment
+        fragment.appendChild(img);
       }
     } catch (error) {
       console.error(`Failed to load avatar for user ${userId}:`, error);
@@ -114,10 +112,15 @@ const loadUserAvatar = async (userId) => {
       { withCredentials: true }
     );
     if (result.data && result.data.avatar) {
-      return `${import.meta.env.VITE_SERVER_URL}/${result.data.avatar.replace(
-        /\\/g,
-        "/"
-      )}`;
+      return {
+        avatar: result.data.avatar
+          ? `${import.meta.env.VITE_SERVER_URL}/${result.data.avatar.replace(
+              /\\/g,
+              "/"
+            )}`
+          : "https://danviet.vn/loat-hinh-anh-dep-me-man-ve-dai-duong-bao-la-20221013095215296.htm",
+        name: result.data.name || "Unknown User", // Trả về tên nếu có, nếu không mặc định
+      };
     } else {
       // URL mặc định nếu không có avatar
       return "https://danviet.vn/loat-hinh-anh-dep-me-man-ve-dai-duong-bao-la-20221013095215296.htm";
@@ -2844,15 +2847,6 @@ onMounted(() => {
   if (!socket.connected) {
     socket.connect();
   }
-
-  // localStorage.removeItem("idOwn");
-  // localStorage.removeItem("documentId");
-  // const idUserAndIdDocument = {
-  if (localStorage.getItem("idUser") === props.ownerIdDocument) {
-    fetchGoToDocumentInfor();
-
-    downloadDocument(props.id);
-  }
   //   idUser: idUser,
   //   idDoc: idDoc,
   // };
@@ -2874,6 +2868,15 @@ onMounted(() => {
     // Gửi yêu cầu sau khi nhận đủ thông tin
     socket.emit("request-edited-content", JSON.stringify(idUserAndIdDocument));
   });
+  // localStorage.removeItem("idOwn");
+  // localStorage.removeItem("documentId");
+  // const idUserAndIdDocument = {
+  if (localStorage.getItem("idUser") === props.ownerIdDocument) {
+    fetchGoToDocumentInfor();
+
+    downloadDocument(props.id);
+  }
+
   socket.on("update-insert-one", (charToInsert) => {
     const kiTu = JSON.parse(charToInsert);
     // console.log("KI TU: "), charToInsert;
@@ -2966,7 +2969,15 @@ const exportToDocxToSent = async () => {
     // Lặp qua từng phần tử <div>
     divElements.forEach((element) => {
       let text = element.innerText.trim();
-      if (text === "") {
+      if (element.id === "") {
+        return; // Bỏ qua phần tử này
+      }
+
+      if (
+        text === "" &&
+        window.getComputedStyle(element).display !== "block" &&
+        element.id != ""
+      ) {
         text = "\u00A0"; // Nếu nội dung trống, thay bằng ký tự không gian không ngắt
       }
       const isEmptyText = !text;

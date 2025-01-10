@@ -141,7 +141,10 @@
         class="activities-container d-flex flex-wrap gap-3 border rounded border-secondary mx-5 p-4"
       >
         <button
-          v-for="(document, index) in documents"
+          v-for="(document, index) in filteredDocuments &&
+          filteredDocuments.length > 0
+            ? filteredDocuments
+            : documents"
           :key="document._id"
           :class="['card activity-card p-3 text-white bg-dark btn-document']"
           style="width: 12rem; height: 5rem"
@@ -339,6 +342,7 @@ const handleCreateNewDoc = () => {
 const handleOpenExistingFile = () => {
   currentModal.value = "openExistingFile";
 };
+
 const handleDocumentCreated = (response) => {
   const newDocument = response.createdDocument || response;
   if (newDocument && newDocument.documentTitle) {
@@ -446,6 +450,15 @@ const checkSessionStatus = async () => {
     console.error("Error fetching user info or session invalid:", err);
     handleLogout();
   }
+};
+let searchKeyword = ref("");
+let filteredDocuments = ref(null);
+filteredDocuments.value = documents.value;
+const handleSearch = () => {
+  filteredDocuments.value = documents.value.filter((doc) =>
+    doc.documentTitle.toLowerCase().includes(searchKeyword.value.toLowerCase())
+  );
+  console.log(searchKeyword.value);
 };
 const handleLogout = async () => {
   try {

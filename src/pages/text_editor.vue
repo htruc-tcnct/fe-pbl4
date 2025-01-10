@@ -3439,7 +3439,7 @@ input[type="color"] {
   padding: 10px 15px; /* Khoảng cách bên trong */
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1); /* Thêm bóng đổ nhẹ */
   transition: all 0.3s ease-in-out; /* Hiệu ứng khi thay đổi */
-  width: 60%; /* Đặt chiều rộng div chiếm 75% trang */
+  width: 1092px; /* Đặt chiều rộng div chiếm 75% trang */
   margin: 0 auto; /* Căn giữa div theo chiều ngang */
   display: flex; /* Sử dụng Flexbox */
   justify-content: space-evenly; /* Căn đều các button */
